@@ -1,0 +1,4054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#FFF8F2">
+<title>Private Vault Player</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#FFF8F2;
+    --bg-2:#FFF1E4;
+    --surface:#FFFFFF;
+    --panel:#FFFFFF;
+    --panel-2:#FFF6EE;
+
+    --accent:#FF7A1A;
+    --accent-2:#FFA347;
+    --accent-deep:#E85D00;
+    --accent-dim:rgba(255,122,26,.12);
+    --accent-line:rgba(255,140,60,.28);
+
+    --text:#1F1410;
+    --muted:#8B7B70;
+    --muted-2:#B5A69A;
+
+    --border:rgba(255,150,70,.18);
+    --border-strong:rgba(255,140,60,.35);
+
+    --glass:linear-gradient(180deg,#FFFFFF 0%,#FFF6EE 100%);
+    --glass-line:1px solid rgba(255,255,255,.95);
+    --glass-shadow:
+      0 12px 32px rgba(255,110,20,.10),
+      0 2px 8px rgba(255,110,20,.05),
+      inset 0 1px 0 #FFFFFF;
+
+    --err:#E5484D;
+    --work:#3B82F6;
+    --warn:#D97706;
+
+    --radius:22px;
+    --shell:390px;
+    --nav-h:64px;
+    --nav-space:calc(64px + 34px);
+
+    --tabbar-h:64px;
+    --gutter:16px;
+  }
+
+  *{box-sizing:border-box;}
+  [hidden]{display:none !important;}
+
+  html{
+    -webkit-text-size-adjust:100%;
+    scroll-behavior:smooth;
+  }
+
+  body{
+    margin:0;
+    min-height:100dvh;
+    background-color:var(--bg);
+    background-image:
+      radial-gradient(420px 320px at 50% -90px, rgba(255,122,26,.16), rgba(255,248,242,0) 70%),
+      radial-gradient(560px 470px at 108% 106%, rgba(255,122,26,.10), rgba(255,248,242,0) 72%);
+    background-attachment:fixed;
+    background-repeat:no-repeat;
+    color:var(--text);
+    font-family:'Inter',ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:15px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:calc(var(--nav-space) + env(safe-area-inset-bottom));
+  }
+
+  body.reduce-motion *,
+  body.reduce-motion *::before,
+  body.reduce-motion *::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+  }
+
+  .wrap{
+    width:100%;
+    max-width:var(--shell);
+    margin:0 auto;
+    padding:calc(14px + env(safe-area-inset-top)) var(--gutter) 26px;
+  }
+
+  /* ==================================================================
+     SHARED GLASS PRIMITIVES
+     ================================================================== */
+  .glass{
+    background:var(--glass);
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    border:var(--glass-line);
+    box-shadow:var(--glass-shadow);
+  }
+
+  .gloss{position:relative;overflow:hidden;}
+  .gloss::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    border-radius:inherit;
+    background:linear-gradient(120deg,
+      rgba(255,255,255,.75) 0%,
+      rgba(255,255,255,.18) 24%,
+      rgba(255,255,255,0) 50%,
+      rgba(255,190,120,.10) 100%);
+  }
+
+  /* ==================================================================
+     SPLASH
+     ================================================================== */
+  .splash{
+    position:fixed;
+    inset:0;
+    z-index:5000;
+    background-color:var(--bg);
+    background-image:
+      radial-gradient(420px 320px at 50% -60px, rgba(255,122,26,.20), rgba(255,248,242,0) 70%),
+      radial-gradient(520px 420px at 100% 108%, rgba(255,122,26,.12), rgba(255,248,242,0) 72%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    transition:opacity .6s ease, visibility .6s ease;
+  }
+  .splash.gone{opacity:0;visibility:hidden;pointer-events:none;}
+
+  .splash-inner{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:16px;
+    text-align:center;
+    max-width:340px;
+    width:100%;
+  }
+
+  .splash-lock{
+    width:96px;
+    height:96px;
+    padding:26px;
+    border-radius:50%;
+    color:#FFFFFF;
+    background:
+      radial-gradient(circle at 50% 30%,
+        #FFB870 0%,
+        #FF8A2E 45%,
+        #E85D00 100%);
+    border:1px solid #FFC58A;
+    box-shadow:
+      0 0 44px rgba(255,122,26,.45),
+      0 14px 30px rgba(255,110,20,.30),
+      inset 0 2px 0 rgba(255,255,255,.85),
+      inset 0 -18px 26px rgba(180,60,0,.28);
+    animation:splashPulse 2.4s ease-in-out infinite;
+    position:relative;
+    overflow:hidden;
+  }
+  .splash-lock::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    background:linear-gradient(120deg,
+      rgba(255,255,255,.55) 0%,
+      rgba(255,255,255,.08) 32%,
+      rgba(255,255,255,0) 55%);
+    pointer-events:none;
+  }
+  @keyframes splashPulse{
+    0%,100%{transform:scale(1);}
+    50%{transform:scale(1.06);}
+  }
+
+  .splash-title{
+    margin:0;
+    font-size:27px;
+    font-weight:900;
+    letter-spacing:4.5px;
+    text-transform:uppercase;
+    color:var(--accent-deep);
+    text-shadow:0 2px 0 #FFFFFF, 0 0 26px rgba(255,122,26,.30);
+  }
+  .splash-sub{
+    color:var(--muted);
+    font-size:10.5px;
+    font-weight:600;
+    letter-spacing:1.8px;
+    text-transform:uppercase;
+    min-height:1.3em;
+    margin-top:-6px;
+    transition:opacity .3s ease;
+  }
+  .splash-bar{
+    width:min(220px,70vw);
+    height:6px;
+    border-radius:99px;
+    background:#FFFFFF;
+    border:1px solid rgba(255,140,60,.18);
+    overflow:hidden;
+    box-shadow:inset 0 1px 2px rgba(255,122,26,.10);
+  }
+  .splash-bar i{
+    display:block;
+    height:100%;
+    width:0%;
+    border-radius:99px;
+    background:linear-gradient(90deg,#FFB870,#FF7A1A);
+    box-shadow:0 0 14px rgba(255,122,26,.55);
+    transition:width .7s cubic-bezier(.4,.1,.2,1);
+  }
+  .splash-note{
+    color:var(--muted-2);
+    font-size:9px;
+    font-weight:600;
+    letter-spacing:1.6px;
+    text-transform:uppercase;
+    margin-top:2px;
+  }
+
+  /* ==================================================================
+     VIEWS
+     ================================================================== */
+  .view{animation:fade .28s ease;}
+  @keyframes fade{
+    from{opacity:0;transform:translateY(8px);}
+    to{opacity:1;transform:none;}
+  }
+
+  /* ==================================================================
+     TOP BAR WITH SHARE — 54px / radius 22px
+     ================================================================== */
+  .topbar{
+    position:relative;
+    overflow:hidden;
+    height:54px;
+    border-radius:var(--radius);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:0 8px 0 12px;
+    margin-bottom:18px;
+    background:var(--glass);
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    border:var(--glass-line);
+    box-shadow:
+      0 12px 30px rgba(255,110,20,.12),
+      inset 0 1.5px 0 #FFFFFF,
+      inset 0 -1px 0 rgba(255,180,120,.18);
+  }
+  .topbar::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    border-radius:inherit;
+    background:linear-gradient(120deg,
+      rgba(255,255,255,.75) 0%,
+      rgba(255,255,255,.10) 28%,
+      rgba(255,255,255,0) 55%,
+      rgba(255,190,120,.10) 100%);
+  }
+  .topbar > *{position:relative;z-index:1;}
+
+  .tb-mark{
+    width:30px;
+    height:30px;
+    flex:0 0 auto;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#FFFFFF;
+    background:linear-gradient(180deg,#FFA347,#FF7A1A);
+    border:1px solid #FFC58A;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,.8),
+      0 4px 12px rgba(255,122,26,.35);
+  }
+  .tb-mark svg{width:15px;height:15px;}
+
+  .tb-title{
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:2.4px;
+    text-transform:uppercase;
+    color:var(--accent-deep);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .tb-dot{
+    margin-left:auto;
+    width:7px;
+    height:7px;
+    flex:0 0 auto;
+    border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 12px rgba(255,122,26,.9), 0 0 0 3px rgba(255,122,26,.12);
+    margin-right:6px;
+  }
+
+  /* Share button in top right */
+  .tb-share{
+    flex:0 0 auto;
+    width:38px;
+    height:38px;
+    padding:0;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#FFFFFF;
+    background:linear-gradient(180deg,#FFA347,#FF7A1A);
+    border:1px solid #FFC58A;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,.85),
+      inset 0 -8px 14px rgba(200,70,0,.18),
+      0 6px 16px rgba(255,122,26,.35);
+    transition:transform .12s, filter .15s;
+    cursor:pointer;
+  }
+  .tb-share:hover{filter:brightness(1.06);}
+  .tb-share:active{transform:scale(.94);}
+  .tb-share:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px;}
+  .tb-share svg{width:17px;height:17px;}
+
+  /* ==================================================================
+     HERO — lock circle 96px
+     ================================================================== */
+  .hero{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    gap:14px;
+    padding:6px 0 24px;
+  }
+  .lockcircle{
+    position:relative;
+    overflow:hidden;
+    width:96px;
+    height:96px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#FFFFFF;
+    background:radial-gradient(circle at 50% 30%,
+      #FFB870 0%,
+      #FF8A2E 45%,
+      #E85D00 100%);
+    border:1px solid #FFC58A;
+    box-shadow:
+      0 0 40px rgba(255,122,26,.38),
+      0 14px 30px rgba(255,110,20,.28),
+      inset 0 2px 0 rgba(255,255,255,.85),
+      inset 0 -18px 26px rgba(180,60,0,.26);
+  }
+  .lockcircle::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    background:linear-gradient(120deg,
+      rgba(255,255,255,.55) 0%,
+      rgba(255,255,255,.06) 34%,
+      rgba(255,255,255,0) 58%);
+    pointer-events:none;
+  }
+  .lockcircle svg{
+    position:relative;
+    z-index:1;
+    width:40px;
+    height:40px;
+    filter:drop-shadow(0 2px 6px rgba(150,50,0,.35));
+  }
+  .hero h1{
+    margin:0;
+    font-size:27px;
+    font-weight:900;
+    letter-spacing:4.5px;
+    text-transform:uppercase;
+    color:var(--accent-deep);
+    text-shadow:0 1px 0 #FFFFFF, 0 0 26px rgba(255,122,26,.30);
+  }
+  .hero .sub{
+    margin:0;
+    color:var(--muted);
+    font-size:10.5px;
+    font-weight:600;
+    letter-spacing:1.8px;
+    text-transform:uppercase;
+  }
+
+  /* ==================================================================
+     STATS — 118px cards
+     ================================================================== */
+  .stats{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-bottom:14px;
+  }
+  .stat{
+    position:relative;
+    overflow:hidden;
+    height:118px;
+    border-radius:var(--radius);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:2px;
+    background:var(--glass);
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    border:var(--glass-line);
+    box-shadow:var(--glass-shadow);
+  }
+  .stat::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:linear-gradient(120deg,
+      rgba(255,255,255,.75) 0%,
+      rgba(255,255,255,.15) 26%,
+      rgba(255,255,255,0) 50%,
+      rgba(255,190,120,.10) 100%);
+  }
+  .stat b{
+    position:relative;
+    z-index:1;
+    display:block;
+    font-size:34px;
+    font-weight:900;
+    letter-spacing:-.02em;
+    line-height:1.05;
+    color:var(--accent-deep);
+    text-shadow:0 1px 0 #FFFFFF, 0 0 22px rgba(255,122,26,.28);
+  }
+  .stat span{
+    position:relative;
+    z-index:1;
+    display:block;
+    margin-top:4px;
+    font-size:9.5px;
+    font-weight:700;
+    letter-spacing:1.6px;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+
+  /* ==================================================================
+     QUICK ACTIONS
+     ================================================================== */
+  .quick{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    margin-bottom:26px;
+  }
+  .quick button{
+    position:relative;
+    overflow:hidden;
+    width:100%;
+    height:72px;
+    border-radius:var(--radius);
+    display:flex;
+    align-items:center;
+    gap:13px;
+    padding:0 16px;
+    text-align:left;
+    background:var(--glass);
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    border:var(--glass-line);
+    box-shadow:var(--glass-shadow);
+    color:var(--text);
+    font-size:12.5px;
+    font-weight:800;
+    letter-spacing:1.1px;
+    text-transform:uppercase;
+  }
+  .quick button::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:linear-gradient(120deg,
+      rgba(255,255,255,.75) 0%,
+      rgba(255,255,255,.12) 28%,
+      rgba(255,255,255,0) 52%,
+      rgba(255,190,120,.10) 100%);
+  }
+  .quick button > *{position:relative;z-index:1;}
+  .quick button:hover{border-color:var(--accent-line);}
+  .quick button .qi{
+    width:42px;
+    height:42px;
+    flex:0 0 auto;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#FFFFFF;
+    background:linear-gradient(180deg,#FFA347,#FF7A1A);
+    border:1px solid #FFC58A;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,.85),
+      0 4px 12px rgba(255,122,26,.30);
+  }
+  .quick button .qi svg{width:19px;height:19px;}
+  .quick button .qm{flex:1;min-width:0;}
+  .quick button .qs{
+    display:block;
+    margin-top:3px;
+    font-size:10px;
+    font-weight:500;
+    letter-spacing:.2px;
+    text-transform:none;
+    color:var(--muted);
+  }
+  .quick button .qc{
+    flex:0 0 auto;
+    color:var(--muted);
+    font-size:18px;
+    font-weight:400;
+    line-height:1;
+  }
+
+  .quick button.primary{
+    height:74px;
+    background:linear-gradient(180deg,#FFA347 0%,#FF7A1A 55%,#EE6A0E 100%);
+    border:1px solid #FFC58A;
+    color:#FFFFFF;
+    box-shadow:
+      inset 0 2px 0 rgba(255,255,255,.85),
+      inset 0 -20px 30px rgba(180,60,0,.22),
+      0 16px 40px rgba(255,122,26,.38);
+  }
+  .quick button.primary::after{
+    background:linear-gradient(120deg,
+      rgba(255,255,255,.55) 0%,
+      rgba(255,255,255,.14) 30%,
+      rgba(255,255,255,0) 55%);
+  }
+  .quick button.primary .qi{
+    background:rgba(255,255,255,.22);
+    border-color:rgba(255,255,255,.55);
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,.7),
+      0 2px 6px rgba(150,50,0,.20);
+    color:#FFFFFF;
+  }
+  .quick button.primary .qs{color:rgba(255,255,255,.88);}
+  .quick button.primary .qc{color:rgba(255,255,255,.85);}
+  .quick button.primary:hover{filter:brightness(1.05);}
+
+  /* ==================================================================
+     SECTION HEADINGS
+     ================================================================== */
+  .sechead{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin:0 0 12px;
+  }
+  .sechead h2{
+    margin:0;
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .sechead button{
+    background:transparent;
+    border:none;
+    padding:0;
+    color:var(--accent-deep);
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:1.4px;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+  .sechead button:hover{color:var(--accent);}
+
+  /* ==================================================================
+     GENERIC BUTTONS
+     ================================================================== */
+  button{
+    font-family:inherit;
+    font-size:10.5px;
+    font-weight:800;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    cursor:pointer;
+    border:1px solid rgba(255,140,60,.22);
+    background:linear-gradient(180deg,#FFFFFF,#FFF4E8);
+    color:var(--muted);
+    border-radius:16px;
+    padding:11px 15px;
+    box-shadow:
+      inset 0 1px 0 #FFFFFF,
+      0 2px 6px rgba(255,110,20,.06);
+    transition:color .15s,border-color .15s,transform .1s,background .15s,opacity .15s,filter .15s;
+    -webkit-tap-highlight-color:transparent;
+    white-space:nowrap;
+  }
+  button:hover:not(:disabled){color:var(--accent-deep);border-color:var(--accent-line);}
+  button:active:not(:disabled){transform:scale(.975);}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  button:disabled{opacity:.45;cursor:not-allowed;}
+
+  button.primary{
+    width:100%;
+    margin-top:14px;
+    height:74px;
+    padding:0 16px;
+    border-radius:var(--radius);
+    background:linear-gradient(180deg,#FFA347 0%,#FF7A1A 55%,#EE6A0E 100%);
+    border:1px solid #FFC58A;
+    color:#FFFFFF;
+    font-size:12.5px;
+    letter-spacing:1.4px;
+    box-shadow:
+      inset 0 2px 0 rgba(255,255,255,.85),
+      inset 0 -20px 30px rgba(180,60,0,.22),
+      0 16px 40px rgba(255,122,26,.35);
+  }
+  button.primary:hover:not(:disabled){filter:brightness(1.05);color:#FFFFFF;}
+  button.primary:disabled{
+    background:linear-gradient(180deg,#FFF6EE,#FFEEDD);
+    border-color:rgba(255,140,60,.22);
+    color:var(--muted-2);
+    box-shadow:inset 0 1px 0 #FFFFFF;
+  }
+
+  button.danger{
+    color:var(--err);
+    border-color:rgba(229,72,77,.28);
+    background:linear-gradient(180deg,#FFFFFF,#FFF1F1);
+  }
+  button.danger:hover:not(:disabled){
+    color:var(--err);
+    border-color:rgba(229,72,77,.5);
+    background:linear-gradient(180deg,#FFFFFF,#FFE8E8);
+  }
+
+  /* ==================================================================
+     CARD
+     ================================================================== */
+  .card{
+    position:relative;
+    overflow:hidden;
+    border-radius:var(--radius);
+    padding:16px;
+    margin-bottom:14px;
+    background:var(--glass);
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    border:var(--glass-line);
+    box-shadow:var(--glass-shadow);
+  }
+  .card::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:linear-gradient(120deg,
+      rgba(255,255,255,.75) 0%,
+      rgba(255,255,255,.12) 28%,
+      rgba(255,255,255,0) 52%,
+      rgba(255,190,120,.08) 100%);
+  }
+  .card > *{position:relative;z-index:1;}
+
+  .lbl{
+    display:block;
+    margin-bottom:9px;
+    font-size:9.5px;
+    font-weight:800;
+    letter-spacing:1.6px;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+
+  .keyrow{display:flex;gap:9px;}
+
+  #pw{
+    flex:1;
+    min-width:0;
+    width:100%;
+    height:52px;
+    background:#FFFFFF;
+    border:1px solid rgba(255,140,60,.22);
+    border-radius:16px;
+    color:var(--text);
+    padding:0 14px;
+    font-family:inherit;
+    font-size:14px;
+    letter-spacing:.4px;
+    outline:none;
+    box-shadow:inset 0 1px 2px rgba(255,122,26,.06);
+    transition:border-color .15s, box-shadow .15s, background .15s;
+  }
+  #pw::placeholder{color:var(--muted-2);letter-spacing:.2px;}
+  #pw:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(255,122,26,.15), inset 0 1px 2px rgba(255,122,26,.08);
+  }
+
+  #togglePw{
+    height:52px;
+    flex:0 0 auto;
+    border-radius:16px;
+  }
+
+  .row2{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-top:14px;
+    flex-wrap:wrap;
+  }
+
+  .chk{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    font-size:11.5px;
+    font-weight:500;
+    color:var(--muted);
+    cursor:pointer;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .chk input{
+    appearance:none;
+    -webkit-appearance:none;
+    width:18px;
+    height:18px;
+    flex:0 0 auto;
+    border:1px solid rgba(255,140,60,.30);
+    border-radius:6px;
+    background:#FFFFFF;
+    cursor:pointer;
+    position:relative;
+    transition:border-color .15s,background .15s,box-shadow .15s;
+  }
+  .chk input:checked{
+    background:linear-gradient(180deg,#FFA347,#FF7A1A);
+    border-color:#FFC58A;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.85),
+      0 2px 8px rgba(255,122,26,.40);
+  }
+  .chk input:checked::after{
+    content:"";
+    position:absolute;
+    left:5px;
+    top:1.5px;
+    width:5px;
+    height:10px;
+    border:solid #FFFFFF;
+    border-width:0 2px 2px 0;
+    transform:rotate(45deg);
+  }
+  .chk input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  .hint{
+    font-size:10.5px;
+    letter-spacing:.2px;
+    color:var(--muted);
+    margin-top:11px;
+  }
+  .hint.ok{color:var(--accent-deep);}
+
+  /* ==================================================================
+     DROP ZONE
+     ================================================================== */
+  .drop{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    text-align:center;
+    padding:34px 18px;
+    margin-bottom:14px;
+    cursor:pointer;
+    border:1.5px dashed rgba(255,140,60,.40);
+    border-radius:var(--radius);
+    background:linear-gradient(180deg,#FFFFFF,#FFF6EE);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+    box-shadow:
+      inset 0 1px 0 #FFFFFF,
+      0 10px 26px rgba(255,110,20,.08);
+    transition:border-color .18s,background .18s,transform .18s,box-shadow .18s;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .drop:hover{
+    border-color:var(--accent-line);
+    box-shadow:inset 0 1px 0 #FFFFFF, 0 12px 30px rgba(255,110,20,.14);
+  }
+  .drop.over{
+    border-color:var(--accent);
+    background:linear-gradient(180deg,#FFF6EE,#FFE9D6);
+    box-shadow:0 0 30px rgba(255,122,26,.30), inset 0 0 22px rgba(255,122,26,.10);
+    transform:scale(1.012);
+  }
+  .drop.loading{opacity:.6;pointer-events:none;}
+  .drop.ready{
+    border-style:solid;
+    border-color:var(--accent-line);
+    background:linear-gradient(180deg,#FFF6EE,#FFE9D6);
+    box-shadow:0 0 26px rgba(255,122,26,.20), inset 0 0 20px rgba(255,122,26,.08);
+  }
+  .drop:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
+
+  .dropicon{
+    width:34px;
+    height:34px;
+    color:var(--accent);
+    margin-bottom:2px;
+    filter:drop-shadow(0 3px 6px rgba(255,122,26,.35));
+  }
+  .drop-title{
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:.2px;
+    word-break:break-all;
+    color:var(--text);
+  }
+  .drop-sub{
+    color:var(--muted);
+    font-size:11px;
+    letter-spacing:.2px;
+  }
+
+  /* ==================================================================
+     QUEUE LIST
+     ================================================================== */
+  .qlist{margin-bottom:6px;}
+
+  .qitem{
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:11px;
+    min-height:64px;
+    padding:10px 12px;
+    margin-bottom:9px;
+    border-radius:18px;
+    background:var(--glass);
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    border:var(--glass-line);
+    box-shadow:
+      inset 0 1px 0 #FFFFFF,
+      0 8px 22px rgba(255,110,20,.08);
+    transition:border-color .15s,background .15s;
+  }
+  .qitem.ok{border-color:var(--accent-line);}
+  .qitem.err{border-color:rgba(229,72,77,.35);background:linear-gradient(180deg,#FFFFFF,#FFF1F1);}
+  .qitem.work{border-color:rgba(59,130,246,.35);}
+
+  .qitem-icon{
+    width:26px;
+    height:26px;
+    flex:0 0 auto;
+    border-radius:9px;
+    background:#FFFFFF;
+    border:1px solid rgba(255,140,60,.25);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:10.5px;
+    font-weight:800;
+    color:var(--muted);
+  }
+  .qitem.ok .qitem-icon{
+    color:#FFFFFF;
+    background:linear-gradient(180deg,#FFA347,#FF7A1A);
+    border-color:#FFC58A;
+    box-shadow:0 2px 8px rgba(255,122,26,.35);
+  }
+  .qitem.err .qitem-icon{color:var(--err);border-color:rgba(229,72,77,.5);}
+  .qitem.work .qitem-icon{color:var(--work);border-color:rgba(59,130,246,.5);}
+
+  .qitem-body{flex:1;min-width:0;}
+  .qitem-name{
+    font-size:12.5px;
+    font-weight:600;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .qitem-meta{font-size:10px;color:var(--muted);margin-top:2px;}
+  .qitem.err .qitem-meta{color:var(--err);}
+
+  .qitem-remove{
+    flex:0 0 auto;
+    background:transparent;
+    border:none;
+    box-shadow:none;
+    color:var(--muted);
+    font-size:16px;
+    line-height:1;
+    padding:6px 8px;
+    border-radius:10px;
+    cursor:pointer;
+  }
+  .qitem-remove:hover{color:var(--err);background:rgba(229,72,77,.08);}
+
+  .qlist-foot{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin:4px 0 14px;
+    font-size:10px;
+    font-weight:600;
+    letter-spacing:.6px;
+    color:var(--muted);
+  }
+  .qlist-foot button{
+    background:transparent;
+    border:none;
+    box-shadow:none;
+    padding:0;
+    color:var(--muted);
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+  .qlist-foot button:hover{color:var(--err);}
+
+  /* ==================================================================
+     STATUS PILL
+     ================================================================== */
+  .status{
+    font-size:11.5px;
+    letter-spacing:.2px;
+    color:var(--muted);
+    background:linear-gradient(180deg,#FFFFFF,#FFF6EE);
+    border:1px solid rgba(255,140,60,.18);
+    border-radius:18px;
+    padding:13px 15px;
+    margin-bottom:14px;
+    word-break:break-word;
+    box-shadow:inset 0 1px 0 #FFFFFF, 0 6px 16px rgba(255,110,20,.06);
+    transition:color .15s,border-color .15s,background .15s;
+  }
+  .status.ok{
+    color:var(--accent-deep);
+    border-color:var(--accent-line);
+    background:linear-gradient(180deg,#FFF6EE,#FFE9D6);
+  }
+  .status.err{
+    color:var(--err);
+    border-color:rgba(229,72,77,.28);
+    background:linear-gradient(180deg,#FFFFFF,#FFF1F1);
+  }
+  .status.work{
+    color:var(--work);
+    border-color:rgba(59,130,246,.28);
+    background:linear-gradient(180deg,#FFFFFF,#EFF6FF);
+  }
+  .status.warn{
+    color:var(--warn);
+    border-color:rgba(217,119,6,.28);
+    background:linear-gradient(180deg,#FFFFFF,#FFF7ED);
+  }
+
+  /* ==================================================================
+     VIEW HEAD
+     ================================================================== */
+  .viewhead{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:10px;
+    margin:2px 0 16px;
+    flex-wrap:wrap;
+  }
+  .viewhead h2{
+    margin:0;
+    font-size:15px;
+    font-weight:900;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:var(--accent-deep);
+    text-shadow:0 1px 0 #FFFFFF;
+  }
+  .viewhead .meta{
+    font-size:9.5px;
+    font-weight:700;
+    letter-spacing:1.4px;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+
+  /* ==================================================================
+     MOVIE ROW — 78px
+     ================================================================== */
+  .movie{
+    position:relative;
+    overflow:hidden;
+    height:78px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:0 13px;
+    margin-bottom:12px;
+    border-radius:var(--radius);
+    background:var(--glass);
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    border:var(--glass-line);
+    box-shadow:
+      inset 0 1px 0 #FFFFFF,
+      0 12px 28px rgba(255,110,20,.10);
+    transition:border-color .18s,background .18s,transform .18s,box-shadow .18s;
+  }
+  .movie::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:linear-gradient(120deg,
+      rgba(255,255,255,.75) 0%,
+      rgba(255,255,255,.12) 26%,
+      rgba(255,255,255,0) 52%,
+      rgba(255,190,120,.10) 100%);
+  }
+  .movie > *{position:relative;z-index:1;}
+
+  .movie:hover{
+    border-color:var(--accent-line);
+    transform:translateY(-1px);
+    box-shadow:inset 0 1px 0 #FFFFFF, 0 16px 34px rgba(255,110,20,.16);
+  }
+  .movie.playing{
+    border-color:var(--accent-line);
+    background:linear-gradient(180deg,#FFF6EE,#FFE9D6);
+    box-shadow:0 0 30px rgba(255,122,26,.22), inset 0 1px 0 #FFFFFF;
+  }
+
+  .movie-icon{
+    width:44px;
+    height:44px;
+    flex:0 0 auto;
+    border-radius:15px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#FFFFFF;
+    background:linear-gradient(180deg,#FFA347,#FF7A1A);
+    border:1px solid #FFC58A;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,.85),
+      0 4px 12px rgba(255,122,26,.30);
+  }
+  .movie.playing .movie-icon{
+    background:linear-gradient(180deg,#FFB870,#FF7A1A);
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,.85),
+      0 6px 16px rgba(255,122,26,.45);
+  }
+  .movie-icon svg{width:17px;height:17px;}
+
+  .movie-info{flex:1;min-width:0;}
+  .movie-name{
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:.1px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    color:var(--text);
+  }
+  .movie-meta{
+    font-size:10px;
+    letter-spacing:.3px;
+    color:var(--muted);
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+    margin-top:3px;
+  }
+  .movie-meta .dot{opacity:.5;}
+
+  .movie-actions{
+    display:flex;
+    gap:6px;
+    flex:0 0 auto;
+    align-items:center;
+  }
+  .movie-actions button{
+    height:38px;
+    padding:0 15px;
+    border-radius:14px;
+    font-size:9.5px;
+    letter-spacing:1.1px;
+  }
+
+  .movie-actions .play{
+    background:linear-gradient(180deg,#FFA347 0%,#FF7A1A 60%,#EE6A0E 100%);
+    border:1.5px solid #FFC58A;
+    color:#FFFFFF;
+    box-shadow:
+      inset 0 2px 0 rgba(255,255,255,.85),
+      inset 0 -10px 16px rgba(180,60,0,.20),
+      0 6px 16px rgba(255,122,26,.35);
+  }
+  .movie-actions .play:hover{
+    color:#FFFFFF;
+    filter:brightness(1.06);
+  }
+  .movie.playing .movie-actions .play{
+    background:linear-gradient(180deg,#FFB870,#FF7A1A);
+    border-color:#FFC58A;
+    color:#FFFFFF;
+    box-shadow:
+      inset 0 2px 0 rgba(255,255,255,.85),
+      0 0 22px rgba(255,122,26,.45);
+  }
+
+  .movie-actions .del{
+    color:var(--err);
+    padding:0 12px;
+    font-size:13px;
+    border-color:rgba(229,72,77,.22);
+    background:linear-gradient(180deg,#FFFFFF,#FFF1F1);
+    box-shadow:inset 0 1px 0 #FFFFFF;
+  }
+  .movie-actions .del:hover{
+    color:var(--err);
+    border-color:rgba(229,72,77,.5);
+    background:linear-gradient(180deg,#FFFFFF,#FFE8E8);
+  }
+
+  /* ==================================================================
+     LIBRARY TOOLS
+     ================================================================== */
+  .searchbar{position:relative;margin-bottom:12px;}
+  .searchbar svg{
+    position:absolute;
+    left:15px;
+    top:50%;
+    transform:translateY(-50%);
+    width:16px;
+    height:16px;
+    color:var(--muted);
+    pointer-events:none;
+  }
+  .searchbar input{
+    width:100%;
+    height:52px;
+    background:#FFFFFF;
+    border:1px solid rgba(255,140,60,.22);
+    border-radius:18px;
+    color:var(--text);
+    padding:0 44px;
+    font-family:inherit;
+    font-size:13px;
+    letter-spacing:.2px;
+    outline:none;
+    box-shadow:inset 0 1px 2px rgba(255,122,26,.06);
+    transition:border-color .15s, box-shadow .15s, background .15s;
+  }
+  .searchbar input::placeholder{color:var(--muted-2);}
+  .searchbar input:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(255,122,26,.15), inset 0 1px 2px rgba(255,122,26,.08);
+  }
+  .searchbar input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;}
+
+  .searchbar .clearbtn{
+    position:absolute;
+    right:8px;
+    top:50%;
+    transform:translateY(-50%);
+    width:32px;
+    height:32px;
+    border-radius:50%;
+    background:transparent;
+    border:none;
+    box-shadow:none;
+    color:var(--muted);
+    font-size:16px;
+    line-height:1;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+  }
+  .searchbar .clearbtn:hover{color:var(--accent-deep);background:rgba(255,122,26,.08);}
+
+  .sortrow{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    margin-bottom:14px;
+    padding-bottom:2px;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .sortrow::-webkit-scrollbar{display:none;}
+
+  .sortchip{
+    flex:0 0 auto;
+    height:36px;
+    padding:0 15px;
+    border-radius:14px;
+    background:linear-gradient(180deg,#FFFFFF,#FFF6EE);
+    border:1px solid rgba(255,140,60,.18);
+    color:var(--muted);
+    font-size:9.5px;
+    font-weight:800;
+    letter-spacing:1.1px;
+    text-transform:uppercase;
+    white-space:nowrap;
+    box-shadow:inset 0 1px 0 #FFFFFF, 0 2px 6px rgba(255,110,20,.05);
+  }
+  .sortchip:hover:not(.active){color:var(--accent-deep);border-color:var(--accent-line);}
+  .sortchip.active{
+    background:linear-gradient(180deg,#FFA347,#FF7A1A);
+    border-color:#FFC58A;
+    color:#FFFFFF;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,.85),
+      0 6px 16px rgba(255,122,26,.35);
+  }
+
+  .group-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:18px 0 10px;
+    color:var(--muted);
+    font-size:9.5px;
+    font-weight:800;
+    letter-spacing:2px;
+    text-transform:uppercase;
+  }
+  .group-head:first-child{margin-top:2px;}
+  .group-head::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:linear-gradient(90deg,rgba(255,140,60,.28),rgba(255,140,60,0));
+  }
+  .group-head .gcount{
+    color:var(--muted-2);
+    font-weight:600;
+    letter-spacing:.4px;
+    text-transform:none;
+  }
+
+  .empty{
+    text-align:center;
+    padding:34px 22px;
+    border:1.5px dashed rgba(255,140,60,.32);
+    border-radius:var(--radius);
+    background:linear-gradient(180deg,#FFFFFF,#FFF6EE);
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.7;
+    box-shadow:inset 0 1px 0 #FFFFFF;
+  }
+  .empty .eicon{
+    width:52px;
+    height:52px;
+    margin:0 auto 14px;
+    border-radius:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#FFFFFF;
+    background:linear-gradient(180deg,#FFA347,#FF7A1A);
+    border:1px solid #FFC58A;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,.85),
+      0 8px 22px rgba(255,122,26,.30);
+  }
+  .empty .eicon svg{width:23px;height:23px;}
+  .empty b{
+    display:block;
+    color:var(--text);
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:.2px;
+    margin-bottom:5px;
+  }
+  .empty button{
+    margin-top:16px;
+    height:52px;
+    padding:0 24px;
+    border-radius:18px;
+    background:linear-gradient(180deg,#FFA347,#FF7A1A);
+    border-color:#FFC58A;
+    color:#FFFFFF;
+    box-shadow:
+      inset 0 2px 0 rgba(255,255,255,.85),
+      0 12px 30px rgba(255,122,26,.30);
+  }
+  .empty button:hover{filter:brightness(1.05);color:#FFFFFF;}
+
+  /* ==================================================================
+     SETTINGS
+     ================================================================== */
+  .settings-sec{margin-bottom:26px;}
+  .settings-sec > h3{
+    margin:0 0 12px;
+    font-size:9.5px;
+    font-weight:800;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+
+  .opt{
+    position:relative;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    min-height:78px;
+    padding:14px 16px;
+    margin-bottom:12px;
+    border-radius:var(--radius);
+    background:var(--glass);
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    border:var(--glass-line);
+    box-shadow:
+      inset 0 1px 0 #FFFFFF,
+      0 10px 26px rgba(255,110,20,.08);
+    transition:border-color .15s;
+    flex-wrap:wrap;
+  }
+  .opt::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:linear-gradient(120deg,
+      rgba(255,255,255,.65) 0%,
+      rgba(255,255,255,.10) 26%,
+      rgba(255,255,255,0) 52%,
+      rgba(255,190,120,.08) 100%);
+  }
+  .opt > *{position:relative;z-index:1;}
+  .opt:hover{border-color:var(--accent-line);}
+
+  .opt-body{flex:1;min-width:150px;}
+  .opt-title{
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:.1px;
+    color:var(--text);
+  }
+  .opt-desc{
+    font-size:10.5px;
+    letter-spacing:.2px;
+    color:var(--muted);
+    margin-top:3px;
+    line-height:1.45;
+  }
+  .opt-control{flex:0 0 auto;}
+
+  .switch{
+    display:inline-block;
+    position:relative;
+    width:48px;
+    height:28px;
+    flex:0 0 auto;
+  }
+  .switch input{
+    opacity:0;
+    width:100%;
+    height:100%;
+    position:absolute;
+    left:0;
+    top:0;
+    margin:0;
+    cursor:pointer;
+    z-index:2;
+  }
+  .switch i{
+    position:absolute;
+    inset:0;
+    background:#FFFFFF;
+    border:1px solid rgba(255,140,60,.28);
+    border-radius:99px;
+    box-shadow:inset 0 1px 2px rgba(255,122,26,.08);
+    transition:background .2s, border-color .2s, box-shadow .2s;
+  }
+  .switch i::after{
+    content:"";
+    position:absolute;
+    top:2px;
+    left:2px;
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    background:#FFFFFF;
+    border:1px solid rgba(255,140,60,.20);
+    box-shadow:0 2px 6px rgba(255,110,20,.20);
+    transition:transform .22s cubic-bezier(.2,.9,.35,1), background .2s;
+  }
+  .switch input:checked + i{
+    background:linear-gradient(180deg,#FFA347,#FF7A1A);
+    border-color:#FFC58A;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,.85),
+      0 4px 14px rgba(255,122,26,.35);
+  }
+  .switch input:checked + i::after{
+    transform:translateX(20px);
+    background:#FFFFFF;
+    border-color:#FFFFFF;
+    box-shadow:0 2px 8px rgba(150,50,0,.30);
+  }
+  .switch input:focus-visible + i{outline:2px solid var(--accent);outline-offset:2px;}
+
+  .seg{
+    display:flex;
+    gap:4px;
+    padding:4px;
+    border-radius:16px;
+    background:#FFFFFF;
+    border:1px solid rgba(255,140,60,.20);
+    box-shadow:inset 0 1px 2px rgba(255,122,26,.06);
+    flex-wrap:wrap;
+  }
+  .seg button{
+    height:32px;
+    padding:0 12px;
+    border-radius:12px;
+    background:transparent;
+    border:none;
+    box-shadow:none;
+    color:var(--muted);
+    font-size:9.5px;
+    font-weight:800;
+    letter-spacing:1px;
+    text-transform:uppercase;
+  }
+  .seg button:hover:not(.active){color:var(--accent-deep);background:rgba(255,122,26,.06);}
+  .seg button.active{
+    background:linear-gradient(180deg,#FFA347,#FF7A1A);
+    color:#FFFFFF;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,.85),
+      0 4px 12px rgba(255,122,26,.30);
+  }
+
+  .storage{
+    position:relative;
+    overflow:hidden;
+    border-radius:var(--radius);
+    padding:6px 16px;
+    margin-bottom:12px;
+    background:var(--glass);
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    border:var(--glass-line);
+    box-shadow:var(--glass-shadow);
+  }
+  .storage-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    padding:15px 0;
+    font-size:12px;
+  }
+  .storage-row + .storage-row{border-top:1px solid rgba(255,140,60,.14);}
+  .storage-row span:first-child{color:var(--muted);letter-spacing:.2px;}
+  .storage-row span:last-child{
+    color:var(--accent-deep);
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:11.5px;
+    text-align:right;
+    font-weight:600;
+  }
+
+  .about-text{
+    font-size:12px;
+    letter-spacing:.15px;
+    color:var(--muted);
+    line-height:1.7;
+  }
+  .about-text b{color:var(--text);font-weight:600;}
+  .about-text + .about-text{margin-top:12px;}
+
+  .kvlist{
+    list-style:none;
+    padding:0;
+    margin:14px 0 0;
+    font-size:11.5px;
+  }
+  .kvlist li{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    padding:10px 0;
+    border-bottom:1px solid rgba(255,140,60,.14);
+  }
+  .kvlist li:last-child{border-bottom:none;}
+  .kvlist li span:first-child{color:var(--muted);}
+  .kvlist li span:last-child{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    color:var(--accent-deep);
+    font-weight:600;
+  }
+
+  .license-text{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:10.5px;
+    line-height:1.7;
+    color:var(--muted);
+    white-space:pre-wrap;
+    background:#FFF9F3;
+    border:1px solid rgba(255,140,60,.18);
+    border-radius:16px;
+    padding:14px;
+    max-height:280px;
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .license-text b{color:var(--accent-deep);font-weight:600;}
+
+  /* ==================================================================
+     BOTTOM NAV — 362 x 64, radius 24, floating
+     ================================================================== */
+  .tabbar{
+    position:fixed;
+    left:50%;
+    transform:translateX(-50%);
+    bottom:calc(16px + env(safe-area-inset-bottom));
+    width:362px;
+    max-width:calc(100% - 28px);
+    height:var(--nav-h);
+    border-radius:24px;
+    display:flex;
+    align-items:center;
+    gap:3px;
+    padding:6px;
+    background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(255,246,238,.95));
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    border:1px solid rgba(255,255,255,.95);
+    box-shadow:
+      inset 0 1.5px 0 #FFFFFF,
+      0 20px 44px rgba(255,110,20,.20),
+      0 4px 12px rgba(255,110,20,.08);
+    z-index:100;
+  }
+
+  .tab{
+    flex:1;
+    min-width:0;
+    height:52px;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:3px;
+    background:transparent;
+    border:none;
+    box-shadow:none;
+    border-radius:18px;
+    color:var(--muted);
+    font-size:8.5px;
+    font-weight:800;
+    letter-spacing:1.1px;
+    text-transform:uppercase;
+    padding:0;
+    cursor:pointer;
+    transition:color .18s, background .18s, box-shadow .18s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .tab:hover{color:var(--accent-deep);}
+  .tab:active{transform:none;}
+  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+
+  .tab svg{
+    width:20px;
+    height:20px;
+    stroke-width:1.7;
+    transition:transform .18s;
+  }
+  .tab.active{
+    color:#FFFFFF;
+    background:linear-gradient(180deg,#FFA347,#FF7A1A);
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,.85),
+      0 6px 16px rgba(255,122,26,.35);
+  }
+  .tab.active svg{
+    transform:scale(1.06);
+    filter:drop-shadow(0 1px 3px rgba(150,50,0,.35));
+  }
+  .tab .badge{
+    position:absolute;
+    top:5px;
+    left:50%;
+    margin-left:7px;
+    min-width:16px;
+    height:16px;
+    padding:0 5px;
+    background:linear-gradient(180deg,#FFA347,#FF7A1A);
+    color:#FFFFFF;
+    border-radius:9px;
+    font-size:9px;
+    font-weight:800;
+    line-height:16px;
+    letter-spacing:0;
+    text-align:center;
+    pointer-events:none;
+    border:1.5px solid #FFFFFF;
+    box-shadow:0 2px 6px rgba(255,122,26,.45);
+  }
+  .tab.active .badge{
+    background:#FFFFFF;
+    color:var(--accent-deep);
+    border-color:#FFFFFF;
+  }
+
+  /* ==================================================================
+     PLAYER OVERLAY
+     ================================================================== */
+  .overlay{
+    position:fixed;
+    inset:0;
+    z-index:1000;
+    background:rgba(255,249,243,.97);
+    backdrop-filter:blur(22px);
+    -webkit-backdrop-filter:blur(22px);
+    display:flex;
+    flex-direction:column;
+    padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom));
+    animation:fade .2s ease;
+  }
+
+  .overlay:fullscreen{padding:0;background:#000;backdrop-filter:none;-webkit-backdrop-filter:none;}
+  .overlay:-webkit-full-screen{padding:0;background:#000;}
+  .overlay:-moz-full-screen{padding:0;background:#000;}
+  .overlay:-ms-fullscreen{padding:0;background:#000;}
+
+  .overlay:fullscreen .overlay-top,
+  .overlay:-webkit-full-screen .overlay-top,
+  .overlay:-moz-full-screen .overlay-top,
+  .overlay:-ms-fullscreen .overlay-top{
+    position:absolute;
+    top:0;left:0;right:0;
+    padding:14px 14px 20px;
+    background:linear-gradient(180deg,rgba(0,0,0,.75),rgba(0,0,0,0));
+    z-index:4;
+    margin:0;
+    pointer-events:none;
+  }
+  .overlay:fullscreen .overlay-top > *,
+  .overlay:-webkit-full-screen .overlay-top > *,
+  .overlay:-moz-full-screen .overlay-top > *,
+  .overlay:-ms-fullscreen .overlay-top > *{pointer-events:auto;}
+
+  .overlay:fullscreen .overlay-body,
+  .overlay:-webkit-full-screen .overlay-body,
+  .overlay:-moz-full-screen .overlay-body,
+  .overlay:-ms-fullscreen .overlay-body{
+    flex:1;
+    margin:0;
+    padding:0;
+    border-radius:0;
+  }
+  .overlay:fullscreen .overlay-body video,
+  .overlay:-webkit-full-screen .overlay-body video,
+  .overlay:-moz-full-screen .overlay-body video,
+  .overlay:-ms-fullscreen .overlay-body video{border-radius:0;}
+
+  .overlay:fullscreen .overlay-controls,
+  .overlay:-webkit-full-screen .overlay-controls,
+  .overlay:-moz-full-screen .overlay-controls,
+  .overlay:-ms-fullscreen .overlay-controls{
+    position:absolute;
+    bottom:0;left:0;right:0;
+    margin:0;
+    border-radius:0;
+    border-left:none;
+    border-right:none;
+    border-bottom:none;
+    padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    background:linear-gradient(0deg,rgba(0,0,0,.85),rgba(0,0,0,.5));
+    border-top:1px solid rgba(255,255,255,.08);
+    z-index:4;
+  }
+
+  .overlay-top{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    margin-bottom:10px;
+    flex:0 0 auto;
+  }
+  .title-wrap{flex:1;min-width:0;}
+  .title{
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.2px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    color:var(--text);
+  }
+  .subtitle{
+    font-size:10.5px;
+    letter-spacing:.3px;
+    color:var(--muted);
+    margin-top:3px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .overlay:fullscreen .subtitle,
+  .overlay:-webkit-full-screen .subtitle,
+  .overlay:-moz-full-screen .subtitle,
+  .overlay:-ms-fullscreen .subtitle{color:rgba(255,255,255,.75);}
+  .overlay:fullscreen .title,
+  .overlay:-webkit-full-screen .title,
+  .overlay:-moz-full-screen .title,
+  .overlay:-ms-fullscreen .title{color:#FFFFFF;text-shadow:0 1px 6px rgba(0,0,0,.8);}
+
+  .overlay-top button{
+    flex:0 0 auto;
+    height:40px;
+    padding:0 16px;
+    border-radius:16px;
+    background:linear-gradient(180deg,#FFFFFF,#FFF4E8);
+    border:1px solid rgba(255,140,60,.25);
+    color:var(--muted);
+    box-shadow:inset 0 1px 0 #FFFFFF, 0 2px 8px rgba(255,110,20,.08);
+  }
+  .overlay-top button:hover{color:var(--accent-deep);border-color:var(--accent-line);}
+  .overlay:fullscreen .overlay-top button,
+  .overlay:-webkit-full-screen .overlay-top button,
+  .overlay:-moz-full-screen .overlay-top button,
+  .overlay:-ms-fullscreen .overlay-top button{
+    background:rgba(0,0,0,.55);
+    border-color:rgba(255,255,255,.15);
+    color:#fff;
+  }
+
+  .overlay-body{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:0;
+    overflow:hidden;
+    position:relative;
+    margin-bottom:10px;
+  }
+  .overlay-body video{
+    display:block;
+    width:auto;
+    height:auto;
+    max-width:100%;
+    max-height:100%;
+    border-radius:18px;
+    background:#000;
+    outline:none;
+    transform-origin:center center;
+    transition:transform .28s cubic-bezier(.2,.9,.35,1),
+               max-width .28s ease, max-height .28s ease;
+    will-change:transform;
+    backface-visibility:hidden;
+    box-shadow:0 20px 50px rgba(150,60,0,.30);
+  }
+
+  .toast{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    padding:11px 20px;
+    background:linear-gradient(180deg,#FFA347,#FF7A1A);
+    border:1px solid #FFC58A;
+    color:#FFFFFF;
+    font-size:12.5px;
+    font-weight:700;
+    letter-spacing:.4px;
+    border-radius:16px;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,.85),
+      0 12px 34px rgba(255,122,26,.45);
+    pointer-events:none;
+    z-index:5;
+    animation:toastFade .95s ease forwards;
+  }
+  @keyframes toastFade{
+    0%   {opacity:0; transform:translate(-50%,-50%) scale(.88);}
+    18%  {opacity:1; transform:translate(-50%,-50%) scale(1);}
+    78%  {opacity:1;}
+    100% {opacity:0;}
+  }
+
+  .overlay-controls{
+    flex:0 0 auto;
+    display:flex;
+    gap:4px;
+    padding:7px;
+    background:linear-gradient(180deg,#FFFFFF,#FFF6EE);
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    border:1px solid rgba(255,255,255,.95);
+    border-radius:22px;
+    box-shadow:
+      inset 0 1.5px 0 #FFFFFF,
+      0 12px 30px rgba(255,110,20,.16);
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .overlay-controls::-webkit-scrollbar{display:none;}
+
+  .ctl{
+    flex:1;
+    min-width:62px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    padding:9px 4px;
+    background:transparent;
+    border:1px solid transparent;
+    border-radius:17px;
+    box-shadow:none;
+    color:var(--muted);
+    font-size:8.5px;
+    font-weight:800;
+    letter-spacing:.6px;
+    text-transform:uppercase;
+    cursor:pointer;
+    transition:color .15s, background .15s, border-color .15s, transform .1s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .ctl:hover{color:var(--accent-deep);background:rgba(255,122,26,.08);}
+  .ctl:active{transform:scale(.95);}
+  .ctl:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+  .ctl svg{width:19px;height:19px;}
+  .ctl.active{
+    color:#FFFFFF;
+    background:linear-gradient(180deg,#FFA347,#FF7A1A);
+    border-color:#FFC58A;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,.85),
+      0 4px 12px rgba(255,122,26,.35);
+  }
+  .ctl-danger{color:var(--err);}
+  .ctl-danger:hover{color:var(--err);background:rgba(229,72,77,.10);}
+  .ctl-danger:focus-visible{outline-color:var(--err);}
+
+  .overlay:fullscreen .ctl,
+  .overlay:-webkit-full-screen .ctl,
+  .overlay:-moz-full-screen .ctl,
+  .overlay:-ms-fullscreen .ctl{color:rgba(255,255,255,.75);}
+  .overlay:fullscreen .ctl:hover,
+  .overlay:-webkit-full-screen .ctl:hover,
+  .overlay:-moz-full-screen .ctl:hover,
+  .overlay:-ms-fullscreen .ctl:hover{color:#fff;background:rgba(255,255,255,.10);}
+  .overlay:fullscreen .ctl.active,
+  .overlay:-webkit-full-screen .ctl.active,
+  .overlay:-moz-full-screen .ctl.active,
+  .overlay:-ms-fullscreen .ctl.active{
+    color:#FFFFFF;
+    background:linear-gradient(180deg,#FFA347,#FF7A1A);
+  }
+
+  .overlay-top,
+  .overlay-controls{
+    transition:opacity .32s ease, transform .32s cubic-bezier(.2,.9,.35,1);
+    will-change:opacity, transform;
+  }
+  .overlay.controls-hidden .overlay-top{
+    opacity:0;
+    transform:translateY(-18px);
+    pointer-events:none;
+  }
+  .overlay.controls-hidden .overlay-controls{
+    opacity:0;
+    transform:translateY(18px);
+    pointer-events:none;
+  }
+  .overlay.controls-hidden .overlay-top *,
+  .overlay.controls-hidden .overlay-controls *{
+    pointer-events:none !important;
+  }
+  .overlay.controls-hidden .overlay-body{cursor:pointer;}
+
+  footer.note{
+    margin-top:26px;
+    text-align:center;
+    color:var(--muted-2);
+    font-size:9.5px;
+    font-weight:600;
+    line-height:1.9;
+    letter-spacing:1.6px;
+    text-transform:uppercase;
+  }
+
+  /* ==================================================================
+     RESPONSIVE
+     ================================================================== */
+  @media (max-width:400px){
+    .tabbar{width:calc(100% - 28px);}
+  }
+
+  @media (max-width:359px){
+    :root{--gutter:12px;}
+    .stats{gap:9px;}
+    .quick button .qs{display:none;}
+    .tab .badge{margin-left:3px;top:4px;}
+    .movie-actions .del{padding:0 9px;}
+    .overlay-controls{gap:3px;padding:5px;}
+    .ctl{min-width:54px;}
+    .hero h1{font-size:23px;letter-spacing:3.4px;}
+    .splash-title{font-size:23px;letter-spacing:3.4px;}
+    .lockcircle{width:84px;height:84px;}
+    .lockcircle svg{width:34px;height:34px;}
+  }
+
+  @media (min-width:900px){
+    .movie-actions .del{opacity:.6;}
+    .movie:hover .movie-actions .del{opacity:1;}
+  }
+
+  @media (orientation:landscape) and (max-height:500px){
+    .overlay{padding:6px 8px calc(6px + env(safe-area-inset-bottom));}
+    .overlay-top{margin-bottom:6px;}
+    .title{font-size:12px;}
+    .subtitle{display:none;}
+    .overlay-body{margin-bottom:6px;}
+    .overlay-controls{padding:5px;}
+    .ctl{padding:6px 4px;min-width:54px;}
+    .ctl span:not(.badge){display:none;}
+    .ctl svg{width:20px;height:20px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.001ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.001ms !important;
+    }
+  }
+
+  @media (hover: none) and (pointer: coarse){
+    button:not(.movie-actions button):not(.ctl){min-height:38px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= SPLASH ================= -->
+<div id="splash" class="splash">
+  <div class="splash-inner">
+    <svg class="splash-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="4" y="10.5" width="16" height="10" rx="2.5"></rect>
+      <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"></path>
+      <circle cx="12" cy="15.5" r="1.2" fill="currentColor" stroke="none"></circle>
+    </svg>
+    <div class="splash-title">Private Vault</div>
+    <div class="splash-sub" id="splashSub">Starting up…</div>
+    <div class="splash-bar"><i id="splashBar"></i></div>
+    <div class="splash-note">Nothing leaves this device</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ================= TOP BAR ================= -->
+  <div class="topbar">
+    <span class="tb-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="10.5" width="16" height="10" rx="2.5"></rect>
+        <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"></path>
+      </svg>
+    </span>
+    <span class="tb-title">Private Vault</span>
+    <span class="tb-dot" aria-hidden="true"></span>
+    <button class="tb-share" id="shareBtn" type="button" aria-label="Share this app">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="18" cy="5" r="3"></circle>
+        <circle cx="6" cy="12" r="3"></circle>
+        <circle cx="18" cy="19" r="3"></circle>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+      </svg>
+    </button>
+  </div>
+
+  <!-- ================= HOME ================= -->
+  <section id="view-home" class="view" hidden>
+    <header class="hero">
+      <div class="lockcircle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="4" y="10.5" width="16" height="10" rx="2.5"></rect>
+          <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"></path>
+          <circle cx="12" cy="15.5" r="1.2" fill="currentColor" stroke="none"></circle>
+        </svg>
+      </div>
+      <h1>Private Vault</h1>
+      <p class="sub">AES-256-GCM · Saved on your device</p>
+    </header>
+
+    <div class="stats">
+      <div class="stat"><b id="statCount">0</b><span>Movies saved</span></div>
+      <div class="stat"><b id="statSize">0 MB</b><span>Stored</span></div>
+    </div>
+
+    <div class="quick">
+      <button type="button" class="primary" data-goto="decrypt">
+        <span class="qi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="4" y="11" width="16" height="10" rx="2.5"></rect>
+            <path d="M8 11V7a4 4 0 0 1 7.7-1.5"></path>
+          </svg>
+        </span>
+        <span class="qm">Decrypt a movie<span class="qs">Unlock a .enc file with your password</span></span>
+        <span class="qc">›</span>
+      </button>
+
+      <button type="button" data-goto="library">
+        <span class="qi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="4.5" width="18" height="15" rx="2.5"></rect>
+            <path d="M8 4.5v15M16 4.5v15M3 9.5h5M3 14.5h5M16 9.5h5M16 14.5h5"></path>
+          </svg>
+        </span>
+        <span class="qm">Open library<span class="qs">Watch saved movies instantly</span></span>
+        <span class="qc">›</span>
+      </button>
+    </div>
+
+    <div class="sechead">
+      <h2>Recently added</h2>
+      <button type="button" data-goto="library" id="seeAllBtn" hidden>See all</button>
+    </div>
+    <div id="homeRecent"></div>
+  </section>
+
+  <!-- ================= LIBRARY ================= -->
+  <section id="view-library" class="view" hidden>
+    <div class="viewhead">
+      <h2>Library</h2>
+      <span class="meta" id="libMeta">0 movies</span>
+    </div>
+
+    <div class="searchbar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path>
+      </svg>
+      <input id="libSearch" type="search" placeholder="Search your movies…"
+             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <button id="libSearchClear" type="button" class="clearbtn" aria-label="Clear search" hidden>&times;</button>
+    </div>
+
+    <div class="sortrow" id="libSortRow" role="tablist" aria-label="Sort movies">
+      <button type="button" class="sortchip active" data-sort="date-desc">Newest</button>
+      <button type="button" class="sortchip" data-sort="date-asc">Oldest</button>
+      <button type="button" class="sortchip" data-sort="name-asc">A–Z</button>
+      <button type="button" class="sortchip" data-sort="name-desc">Z–A</button>
+      <button type="button" class="sortchip" data-sort="size-desc">Largest</button>
+      <button type="button" class="sortchip" data-sort="size-asc">Smallest</button>
+    </div>
+
+    <div id="libStatus" class="status">Your saved movies live here. No password needed to watch them.</div>
+    <div id="libraryList"></div>
+  </section>
+
+  <!-- ================= DECRYPT ================= -->
+  <section id="view-decrypt" class="view" hidden>
+    <div class="viewhead">
+      <h2>Decrypt</h2>
+      <span class="meta">Unlock a .enc file</span>
+    </div>
+
+    <div class="card">
+      <label class="lbl" for="pw">Password · one password unlocks the whole batch</label>
+      <div class="keyrow">
+        <input id="pw" type="password" autocomplete="current-password"
+               autocapitalize="off" autocorrect="off" spellcheck="false"
+               placeholder="Enter the vault password">
+        <button id="togglePw" type="button" aria-label="Show or hide password">Show</button>
+      </div>
+
+      <div class="row2">
+        <label class="chk" for="remember">
+          <input type="checkbox" id="remember">
+          <span>Remember for new files</span>
+        </label>
+      </div>
+
+      <div id="pwHint" class="hint">The password never leaves this device.</div>
+    </div>
+
+    <section id="drop" class="drop" tabindex="0" role="button" aria-label="Choose one or more .enc files">
+      <svg class="dropicon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 19.5h16"></path>
+      </svg>
+      <div class="drop-title" id="dropTitle">Drop .enc file(s) here</div>
+      <div class="drop-sub" id="dropSub">or tap to choose files · pick a whole series at once</div>
+    </section>
+    <input id="file" type="file" accept=".enc" multiple hidden>
+
+    <div id="qlist" class="qlist"></div>
+    <div id="qlistFoot" class="qlist-foot" hidden>
+      <span id="qlistCount"></span>
+      <button type="button" id="qlistClear">Clear all</button>
+    </div>
+
+    <button id="unlockBtn" class="primary" type="button" hidden disabled>Unlock &amp; save to library</button>
+    <div id="decStatus" class="status">Waiting for a vault file…</div>
+  </section>
+
+  <!-- ================= SETTINGS ================= -->
+  <section id="view-settings" class="view" hidden>
+    <div class="viewhead">
+      <h2>Settings</h2>
+      <span class="meta">v1.0.0</span>
+    </div>
+
+    <div class="settings-sec">
+      <h3>Playback</h3>
+
+      <div class="opt">
+        <div class="opt-body">
+          <div class="opt-title">Autoplay</div>
+          <div class="opt-desc">Start movies automatically when opened</div>
+        </div>
+        <div class="opt-control">
+          <label class="switch" aria-label="Autoplay">
+            <input type="checkbox" id="setAutoplay">
+            <i></i>
+          </label>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="opt-body">
+          <div class="opt-title">Skip duration</div>
+          <div class="opt-desc">Rewind / forward step size</div>
+        </div>
+        <div class="opt-control">
+          <div class="seg" id="setSkipSeg">
+            <button type="button" data-value="5">5s</button>
+            <button type="button" data-value="10">10s</button>
+            <button type="button" data-value="15">15s</button>
+            <button type="button" data-value="30">30s</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="opt-body">
+          <div class="opt-title">Hide controls after</div>
+          <div class="opt-desc">Auto-fade the player buttons</div>
+        </div>
+        <div class="opt-control">
+          <div class="seg" id="setTimeoutSeg">
+            <button type="button" data-value="0">Never</button>
+            <button type="button" data-value="2000">2s</button>
+            <button type="button" data-value="3500">3.5s</button>
+            <button type="button" data-value="5000">5s</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="opt-body">
+          <div class="opt-title">Keep screen awake</div>
+          <div class="opt-desc">Prevent the display from sleeping during playback</div>
+        </div>
+        <div class="opt-control">
+          <label class="switch" aria-label="Keep screen awake">
+            <input type="checkbox" id="setKeepAwake">
+            <i></i>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-sec">
+      <h3>Display</h3>
+
+      <div class="opt">
+        <div class="opt-body">
+          <div class="opt-title">Reduce motion</div>
+          <div class="opt-desc">Turn off animations and transitions</div>
+        </div>
+        <div class="opt-control">
+          <label class="switch" aria-label="Reduce motion">
+            <input type="checkbox" id="setReduceMotion">
+            <i></i>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-sec">
+      <h3>Storage</h3>
+
+      <div class="storage">
+        <div class="storage-row"><span>Movies saved</span><span id="stgCount">0</span></div>
+        <div class="storage-row"><span>Total size</span><span id="stgSize">0 B</span></div>
+        <div class="storage-row"><span>Storage engine</span><span id="stgEngine">IndexedDB</span></div>
+      </div>
+
+      <button type="button" id="clearPwBtn" style="width:100%;height:56px;border-radius:22px;margin-bottom:12px;">
+        Forget saved password
+      </button>
+      <button type="button" id="clearLibraryBtn" class="danger" style="width:100%;height:56px;border-radius:22px;">
+        Delete every saved movie
+      </button>
+      <div id="stgHint" class="hint" style="text-align:center;">
+        Deleting movies cannot be undone.
+      </div>
+    </div>
+
+    <div class="settings-sec">
+      <h3>About</h3>
+
+      <div class="card">
+        <div class="about-text">
+          <b>Private Vault Player</b> is a single offline HTML file that unlocks and plays
+          <b>.enc</b> movies encrypted with AES-256-GCM. Once a movie is unlocked, it is
+          stored on your device — no password needed again.
+        </div>
+        <div class="about-text">
+          Everything runs locally. No servers, no analytics, no network requests.
+        </div>
+
+        <ul class="kvlist">
+          <li><span>Version</span><span>1.0.0</span></li>
+          <li><span>Cipher</span><span>AES-256-GCM</span></li>
+          <li><span>Key derivation</span><span>PBKDF2-SHA256</span></li>
+          <li><span>Header size</span><span>53 bytes</span></li>
+          <li><span>Storage</span><span>IndexedDB</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="settings-sec">
+      <h3>License</h3>
+
+      <div class="card">
+        <div class="license-text"><b>MIT License</b>
+
+Copyright (c) 2026 Private Vault Player
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</div>
+
+        <div class="about-text" style="margin-top:14px;">
+          This player uses only browser-native cryptography (WebCrypto). No third-party
+          libraries are bundled.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="note">
+    Nothing is uploaded · Works offline<br>
+    Private Vault Player · v1.0.0
+  </footer>
+</div>
+
+<!-- ================= BOTTOM NAV ================= -->
+<nav class="tabbar" role="tablist">
+  <button class="tab active" type="button" data-view="home" role="tab" aria-label="Home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 10.5L12 3l9 7.5"></path><path d="M5 10v10h14V10"></path>
+    </svg>
+    <span>Home</span>
+  </button>
+
+  <button class="tab" type="button" data-view="library" role="tab" aria-label="Library">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3" y="4.5" width="18" height="15" rx="2.5"></rect>
+      <path d="M8 4.5v15M16 4.5v15M3 9.5h5M3 14.5h5M16 9.5h5M16 14.5h5"></path>
+    </svg>
+    <span>Library</span>
+    <span class="badge" id="libBadge" hidden>0</span>
+  </button>
+
+  <button class="tab" type="button" data-view="decrypt" role="tab" aria-label="Decrypt">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="4" y="11" width="16" height="10" rx="2.5"></rect>
+      <path d="M8 11V7a4 4 0 0 1 7.7-1.5"></path>
+      <circle cx="12" cy="16" r="1.2" fill="currentColor" stroke="none"></circle>
+    </svg>
+    <span>Decrypt</span>
+  </button>
+
+  <button class="tab" type="button" data-view="settings" role="tab" aria-label="Settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path>
+    </svg>
+    <span>Settings</span>
+  </button>
+</nav>
+
+<!-- ================= PLAYER OVERLAY ================= -->
+<div id="playerOverlay" class="overlay" hidden>
+  <div class="overlay-top">
+    <div class="title-wrap">
+      <div class="title" id="playerTitle">—</div>
+      <div class="subtitle" id="playerInfo"></div>
+    </div>
+    <button id="closePlayer" type="button" aria-label="Close player">Close</button>
+  </div>
+
+  <div class="overlay-body" id="playerBody">
+    <video id="video" controls playsinline preload="metadata"></video>
+    <div id="toast" class="toast" hidden></div>
+  </div>
+
+  <div class="overlay-controls">
+    <button id="skipBack" class="ctl" type="button" aria-label="Rewind">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M11 6l-6 6 6 6"></path><path d="M19 6l-6 6 6 6"></path>
+      </svg>
+      <span id="skipBackLabel">10s</span>
+    </button>
+
+    <button id="skipFwd" class="ctl" type="button" aria-label="Forward">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M13 6l6 6-6 6"></path><path d="M5 6l6 6-6 6"></path>
+      </svg>
+      <span id="skipFwdLabel">10s</span>
+    </button>
+
+    <button id="loopBtn" class="ctl" type="button" aria-label="Toggle loop" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M17 2.5l3.5 3.5L17 9.5"></path>
+        <path d="M3.5 11V10a4 4 0 0 1 4-4h13"></path>
+        <path d="M7 21.5L3.5 18 7 14.5"></path>
+        <path d="M20.5 13v1a4 4 0 0 1-4 4h-13"></path>
+      </svg>
+      <span>Loop</span>
+    </button>
+
+    <button id="rotateBtn" class="ctl" type="button" aria-label="Rotate video">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20.5 12a8.5 8.5 0 1 1-3-6.5"></path>
+        <path d="M21 3v6h-6"></path>
+      </svg>
+      <span id="rotateLabel">Rotate</span>
+    </button>
+
+    <button id="fsBtn" class="ctl" type="button" aria-label="Toggle fullscreen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M8 3.5H5.5a2 2 0 0 0-2 2V8"></path>
+        <path d="M20.5 8V5.5a2 2 0 0 0-2-2H16"></path>
+        <path d="M3.5 16v2.5a2 2 0 0 0 2 2H8"></path>
+        <path d="M16 20.5h2.5a2 2 0 0 0 2-2V16"></path>
+      </svg>
+      <span id="fsLabel">Full</span>
+    </button>
+
+    <button id="deletePlaying" class="ctl ctl-danger" type="button" aria-label="Delete movie">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 6h18"></path>
+        <path d="M8 6V4.5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1V6"></path>
+        <path d="M18.5 6l-1 14a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2L5.5 6"></path>
+      </svg>
+      <span>Delete</span>
+    </button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================================================================== */
+  /*  CONSTANTS                                                          */
+  /* ================================================================== */
+
+  var MAGIC = [0x50, 0x56, 0x4C, 0x54];
+  var HEADER_LEN = 53;
+  var SALT_START = 9,  SALT_END = 25;
+  var IV_START   = 25, IV_END   = 37;
+  var TAG_START  = 37, TAG_END  = 53;
+  var DATA_START = 53;
+  var TAG_LEN    = 16;
+
+  var PW_STORE      = 'privatevault.pw.v1';
+  var LAST_VIEW     = 'privatevault.view.v1';
+  var SETTINGS_KEY  = 'privatevault.settings.v1';
+
+  var DB_NAME    = 'privatevault.db';
+  var DB_VERSION = 1;
+  var STORE      = 'movies';
+
+  var DEFAULT_SETTINGS = {
+    autoplay: true,
+    skipSeconds: 10,
+    controlsTimeout: 3500,
+    keepAwake: false,
+    reducedMotion: false
+  };
+
+  var SPLASH_MIN_MS = 3800;
+
+  /* ================================================================== */
+  /*  DOM                                                                */
+  /* ================================================================== */
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  var splash     = $('splash');
+  var splashBar  = $('splashBar');
+  var splashSub  = $('splashSub');
+  var shareBtn   = $('shareBtn');
+
+  var views = {
+    home:     $('view-home'),
+    library:  $('view-library'),
+    decrypt:  $('view-decrypt'),
+    settings: $('view-settings')
+  };
+
+  var tabs = document.querySelectorAll('.tab');
+
+  var statCount  = $('statCount');
+  var statSize   = $('statSize');
+  var homeRecent = $('homeRecent');
+  var seeAllBtn  = $('seeAllBtn');
+
+  var libMeta    = $('libMeta');
+  var libStatus  = $('libStatus');
+  var libraryList= $('libraryList');
+  var libBadge   = $('libBadge');
+  var libSearch      = $('libSearch');
+  var libSearchClear = $('libSearchClear');
+  var libSortRow      = $('libSortRow');
+
+  var pwInput   = $('pw');
+  var togglePw  = $('togglePw');
+  var remember  = $('remember');
+  var pwHint    = $('pwHint');
+
+  var drop      = $('drop');
+  var dropTitle = $('dropTitle');
+  var dropSub   = $('dropSub');
+  var fileInput = $('file');
+  var unlockBtn = $('unlockBtn');
+  var decStatus = $('decStatus');
+  var qlist      = $('qlist');
+  var qlistFoot  = $('qlistFoot');
+  var qlistCount = $('qlistCount');
+  var qlistClear = $('qlistClear');
+
+  var setAutoplay     = $('setAutoplay');
+  var setSkipSeg      = $('setSkipSeg');
+  var setTimeoutSeg   = $('setTimeoutSeg');
+  var setKeepAwake    = $('setKeepAwake');
+  var setReduceMotion = $('setReduceMotion');
+  var stgCount        = $('stgCount');
+  var stgSize         = $('stgSize');
+  var stgEngine       = $('stgEngine');
+  var clearPwBtn      = $('clearPwBtn');
+  var clearLibraryBtn = $('clearLibraryBtn');
+  var stgHint         = $('stgHint');
+
+  var overlay     = $('playerOverlay');
+  var playerBody  = $('playerBody');
+  var playerTitle = $('playerTitle');
+  var playerInfo  = $('playerInfo');
+  var closePlayer = $('closePlayer');
+  var video       = $('video');
+  var toastEl     = $('toast');
+
+  var skipBack      = $('skipBack');
+  var skipFwd       = $('skipFwd');
+  var skipBackLabel = $('skipBackLabel');
+  var skipFwdLabel  = $('skipFwdLabel');
+  var loopBtn       = $('loopBtn');
+  var rotateBtn     = $('rotateBtn');
+  var rotateLabel   = $('rotateLabel');
+  var fsBtn         = $('fsBtn');
+  var fsLabel       = $('fsLabel');
+  var deletePlaying = $('deletePlaying');
+
+  /* ================================================================== */
+  /*  STATE                                                              */
+  /* ================================================================== */
+
+  var currentView = 'home';
+  var pendingFiles = [];
+  var busy = false;
+  var hintTimer = null;
+
+  var currentUrl = null;
+  var currentPlayingId = null;
+
+  var library = [];
+  var dbAvailable = true;
+  var librarySort = 'date-desc';
+  var librarySearch = '';
+
+  var rotationDeg = 0;
+  var loopEnabled = false;
+  var toastTimer = null;
+  var isInFullscreen = false;
+
+  var controlsTimer = null;
+  var controlsVisible = true;
+  var suppressShowUntil = 0;
+
+  var settings = Object.assign({}, DEFAULT_SETTINGS);
+
+  var wakeLock = null;
+
+  /* ================================================================== */
+  /*  SHARE                                                              */
+  /* ================================================================== */
+
+  shareBtn.addEventListener('click', async function () {
+    var shareData = {
+      title: 'Private Vault Player',
+      text: 'Private Vault Player — unlock and play your encrypted .enc movies, fully offline.',
+      url: window.location.href
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (e) {
+        if (e && e.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(window.location.href);
+        showToast('Link copied');
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = window.location.href;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'absolute';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('Link copied');
+      }
+    } catch (e) {
+      showToast('Sharing not available');
+    }
+  });
+
+  /* ================================================================== */
+  /*  SETTINGS                                                           */
+  /* ================================================================== */
+
+  function loadSettings() {
+    try {
+      var raw = localStorage.getItem(SETTINGS_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          Object.keys(DEFAULT_SETTINGS).forEach(function (k) {
+            if (k in parsed) settings[k] = parsed[k];
+          });
+        }
+      }
+    } catch (e) {}
+    applySettings();
+    syncSettingsUI();
+  }
+
+  function saveSettings() {
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+    catch (e) {}
+  }
+
+  function applySettings() {
+    document.body.classList.toggle('reduce-motion', !!settings.reducedMotion);
+    skipBackLabel.textContent = settings.skipSeconds + 's';
+    skipFwdLabel.textContent  = settings.skipSeconds + 's';
+    if (settings.keepAwake && !video.paused && currentPlayingId != null) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+  }
+
+  function syncSettingsUI() {
+    setAutoplay.checked     = !!settings.autoplay;
+    setKeepAwake.checked    = !!settings.keepAwake;
+    setReduceMotion.checked = !!settings.reducedMotion;
+
+    var sb = setSkipSeg.querySelectorAll('button');
+    for (var i = 0; i < sb.length; i++) {
+      sb[i].classList.toggle('active',
+        parseInt(sb[i].getAttribute('data-value'), 10) === settings.skipSeconds);
+    }
+
+    var tb = setTimeoutSeg.querySelectorAll('button');
+    for (var j = 0; j < tb.length; j++) {
+      tb[j].classList.toggle('active',
+        parseInt(tb[j].getAttribute('data-value'), 10) === settings.controlsTimeout);
+    }
+  }
+
+  function updateSetting(key, value) {
+    settings[key] = value;
+    saveSettings();
+    applySettings();
+    syncSettingsUI();
+  }
+
+  setAutoplay.addEventListener('change', function () { updateSetting('autoplay', !!this.checked); });
+  setKeepAwake.addEventListener('change', function () { updateSetting('keepAwake', !!this.checked); });
+  setReduceMotion.addEventListener('change', function () { updateSetting('reducedMotion', !!this.checked); });
+
+  setSkipSeg.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('button') : null;
+    if (!btn) return;
+    var val = parseInt(btn.getAttribute('data-value'), 10);
+    if (!isFinite(val)) return;
+    updateSetting('skipSeconds', val);
+    showToast('Skip ' + val + 's');
+  });
+
+  setTimeoutSeg.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('button') : null;
+    if (!btn) return;
+    var val = parseInt(btn.getAttribute('data-value'), 10);
+    if (!isFinite(val)) return;
+    updateSetting('controlsTimeout', val);
+    showToast(val === 0 ? 'Controls stay on' : ('Hide after ' + (val / 1000) + 's'));
+  });
+
+  /* ================================================================== */
+  /*  WAKE LOCK                                                          */
+  /* ================================================================== */
+
+  async function requestWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    if (wakeLock) return;
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', function () { wakeLock = null; });
+    } catch (e) { wakeLock = null; }
+  }
+
+  async function releaseWakeLock() {
+    if (!wakeLock) return;
+    try { await wakeLock.release(); } catch (e) {}
+    wakeLock = null;
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) return;
+    if (settings.keepAwake && !video.paused && currentPlayingId != null) {
+      requestWakeLock();
+    }
+  });
+
+  /* ================================================================== */
+  /*  HELPERS                                                            */
+  /* ================================================================== */
+
+  function fmtSize(n) {
+    if (!isFinite(n) || n < 0) return '—';
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+    if (n < 1073741824) return (n / 1048576).toFixed(1) + ' MB';
+    return (n / 1073741824).toFixed(2) + ' GB';
+  }
+
+  function fmtShortSize(n) {
+    if (!isFinite(n) || n < 0) return '0 MB';
+    if (n < 1048576) return (n / 1024).toFixed(0) + ' KB';
+    if (n < 1073741824) return (n / 1048576).toFixed(1) + ' MB';
+    return (n / 1073741824).toFixed(2) + ' GB';
+  }
+
+  function fmtDate(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    var now = new Date();
+    var sameYear = d.getFullYear() === now.getFullYear();
+    var opts = sameYear
+      ? { month: 'short', day: 'numeric' }
+      : { month: 'short', day: 'numeric', year: 'numeric' };
+    try { return d.toLocaleDateString(undefined, opts); }
+    catch (e) { return d.toDateString(); }
+  }
+
+  function nextFrame() {
+    return new Promise(function (resolve) {
+      requestAnimationFrame(function () { setTimeout(resolve, 0); });
+    });
+  }
+
+  function delay(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  function VaultError(message) {
+    this.name = 'VaultError';
+    this.message = message;
+  }
+  VaultError.prototype = Object.create(Error.prototype);
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c];
+    });
+  }
+
+  function setDecStatus(msg, kind) {
+    decStatus.textContent = msg;
+    decStatus.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  function setLibStatus(msg, kind) {
+    libStatus.textContent = msg;
+    libStatus.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  /* ================================================================== */
+  /*  TOAST                                                              */
+  /* ================================================================== */
+
+  function showToast(text) {
+    toastEl.textContent = text;
+    toastEl.hidden = false;
+    toastEl.style.animation = 'none';
+    void toastEl.offsetHeight;
+    toastEl.style.animation = '';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.hidden = true; }, 950);
+  }
+
+  /* ================================================================== */
+  /*  AUTO-HIDE CONTROLS                                                 */
+  /* ================================================================== */
+
+  function setControlsVisible(visible) {
+    controlsVisible = !!visible;
+    overlay.classList.toggle('controls-hidden', !controlsVisible);
+  }
+
+  function scheduleHide() {
+    clearTimeout(controlsTimer);
+    if (settings.controlsTimeout <= 0) return;
+    if (video.paused || video.ended) return;
+    controlsTimer = setTimeout(function () {
+      if (!video.paused && !video.ended) {
+        setControlsVisible(false);
+      }
+    }, settings.controlsTimeout);
+  }
+
+  function showControls(autoHide) {
+    if (Date.now() < suppressShowUntil) return;
+    clearTimeout(controlsTimer);
+    setControlsVisible(true);
+    if (autoHide !== false) scheduleHide();
+  }
+
+  function hideControls() {
+    clearTimeout(controlsTimer);
+    setControlsVisible(false);
+  }
+
+  function toggleControls() {
+    if (controlsVisible) {
+      suppressShowUntil = Date.now() + 450;
+      hideControls();
+    } else {
+      showControls();
+    }
+  }
+
+  overlay.addEventListener('pointermove', function (e) {
+    if (e.pointerType === 'mouse' || e.pointerType === 'pen') showControls();
+  });
+
+  overlay.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('button') : null;
+    if (btn) { showControls(); return; }
+    if (e.target.closest && e.target.closest('.overlay-top')) return;
+    if (e.target === overlay || e.target === playerBody || e.target === video) {
+      toggleControls();
+    }
+  });
+
+  video.addEventListener('play',    function () { showControls(); });
+  video.addEventListener('playing', function () { showControls(); });
+  video.addEventListener('pause',   function () { showControls(false); });
+  video.addEventListener('ended',   function () { showControls(false); });
+  video.addEventListener('seeked',  function () { showControls(); });
+  video.addEventListener('waiting', function () { showControls(); });
+
+  /* ================================================================== */
+  /*  VIEW NAVIGATION                                                    */
+  /* ================================================================== */
+
+  function showView(name) {
+    if (!views[name]) return;
+    currentView = name;
+    Object.keys(views).forEach(function (k) { views[k].hidden = (k !== name); });
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.toggle('active', tabs[i].dataset.view === name);
+    }
+    try { localStorage.setItem(LAST_VIEW, name); } catch (e) {}
+    if (name === 'library') refreshLibrary();
+    if (name === 'home')    renderHome();
+    if (name === 'settings') refreshStorageInfo();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (name === 'decrypt' && !pendingFiles.length && !pwInput.value) {
+      setTimeout(function () { try { pwInput.focus(); } catch (e) {} }, 250);
+    }
+  }
+
+  for (var t = 0; t < tabs.length; t++) {
+    tabs[t].addEventListener('click', function () {
+      showView(this.dataset.view);
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest ? e.target.closest('[data-goto]') : null;
+    if (el) showView(el.getAttribute('data-goto'));
+  });
+
+  /* ================================================================== */
+  /*  PASSWORD MEMORY                                                    */
+  /* ================================================================== */
+
+  function storePassword(value) {
+    try {
+      if (value) localStorage.setItem(PW_STORE, value);
+      else localStorage.removeItem(PW_STORE);
+    } catch (e) {}
+  }
+
+  function loadPassword() {
+    try {
+      var saved = localStorage.getItem(PW_STORE);
+      if (saved) {
+        pwInput.value = saved;
+        remember.checked = true;
+        pwHint.textContent = 'Password remembered for new files.';
+        pwHint.classList.add('ok');
+      }
+    } catch (e) {}
+  }
+
+  function refreshHint() {
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(function () {
+      pwHint.classList.remove('ok');
+      if (pwInput.value) {
+        pwHint.textContent = remember.checked
+          ? 'Password remembered for new files.'
+          : 'Password entered. Used only to unlock new files.';
+        pwHint.classList.add('ok');
+      } else {
+        pwHint.textContent = 'The password never leaves this device.';
+      }
+    }, 250);
+  }
+
+  pwInput.addEventListener('input', function () {
+    refreshHint();
+    updateDecryptUI();
+  });
+
+  pwInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && pendingFiles.length && pwInput.value && !busy) {
+      e.preventDefault();
+      runDecrypt();
+    }
+  });
+
+  remember.addEventListener('change', function () {
+    if (remember.checked) storePassword(pwInput.value || '');
+    else storePassword(null);
+    refreshHint();
+  });
+
+  togglePw.addEventListener('click', function () {
+    var showing = pwInput.type === 'text';
+    pwInput.type = showing ? 'password' : 'text';
+    togglePw.textContent = showing ? 'Show' : 'Hide';
+  });
+
+  /* ================================================================== */
+  /*  STORAGE / CLEAR BUTTONS                                            */
+  /* ================================================================== */
+
+  function refreshStorageInfo() {
+    var total = 0;
+    for (var i = 0; i < library.length; i++) total += (library[i].size || 0);
+    stgCount.textContent = library.length;
+    stgSize.textContent  = fmtSize(total);
+    stgEngine.textContent = dbAvailable ? 'IndexedDB' : 'Unavailable';
+  }
+
+  clearPwBtn.addEventListener('click', function () {
+    var had = false;
+    try { had = !!localStorage.getItem(PW_STORE); } catch (e) {}
+    storePassword(null);
+    pwInput.value = '';
+    remember.checked = false;
+    pwHint.classList.remove('ok');
+    pwHint.textContent = 'The password never leaves this device.';
+    stgHint.textContent = had ? 'Saved password cleared.' : 'No password was saved.';
+  });
+
+  clearLibraryBtn.addEventListener('click', async function () {
+    if (!library.length) {
+      stgHint.textContent = 'There are no saved movies to delete.';
+      return;
+    }
+    var ok = window.confirm(
+      'Delete all ' + library.length + ' saved movie' + (library.length === 1 ? '' : 's') + '?\n\n' +
+      'This cannot be undone. You will need the password and the original .enc files to watch them again.'
+    );
+    if (!ok) return;
+
+    stopPlayback();
+
+    try {
+      if (dbAvailable) {
+        for (var i = 0; i < library.length; i++) {
+          try { await dbDelete(library[i].id); } catch (e) {}
+        }
+      }
+      library = [];
+      renderHome();
+      renderLibrary();
+      refreshStorageInfo();
+      stgHint.textContent = 'All saved movies were deleted.';
+    } catch (e) {
+      stgHint.textContent = 'Could not delete everything: ' + (e.message || e);
+    }
+  });
+
+  /* ================================================================== */
+  /*  INDEXEDDB                                                          */
+  /* ================================================================== */
+
+  function openDB() {
+    return new Promise(function (resolve, reject) {
+      if (!window.indexedDB) { reject(new Error('IndexedDB unavailable.')); return; }
+      var req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = function (e) {
+        var db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE)) {
+          var store = db.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
+          store.createIndex('savedAt', 'savedAt', { unique: false });
+          store.createIndex('name', 'name', { unique: false });
+        }
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror   = function () { reject(req.error); };
+    });
+  }
+
+  function dbGetAll() {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(STORE, 'readonly');
+        var req = tx.objectStore(STORE).getAll();
+        req.onsuccess = function () { resolve(req.result || []); };
+        req.onerror   = function () { reject(req.error); };
+      });
+    });
+  }
+
+  function dbPut(record) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(STORE, 'readwrite');
+        var req = tx.objectStore(STORE).put(record);
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror   = function () { reject(req.error); };
+      });
+    });
+  }
+
+  function dbDelete(id) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(STORE, 'readwrite');
+        var req = tx.objectStore(STORE).delete(id);
+        req.onsuccess = function () { resolve(); };
+        req.onerror   = function () { reject(req.error); };
+      });
+    });
+  }
+
+  /* ================================================================== */
+  /*  HEADER PARSING                                                     */
+  /* ================================================================== */
+
+  function parseHeader(bytes) {
+    if (bytes.length < HEADER_LEN + 1) throw new VaultError('This file is too small to be a vault file.');
+    if (bytes[0] !== MAGIC[0] || bytes[1] !== MAGIC[1] ||
+        bytes[2] !== MAGIC[2] || bytes[3] !== MAGIC[3]) {
+      throw new VaultError('Not a Private Vault .enc file.');
+    }
+    var version = bytes[4];
+    if (version !== 1) throw new VaultError('Unsupported vault version (' + version + '). Get a newer player.');
+    var iterations = ((bytes[5] << 24) | (bytes[6] << 16) | (bytes[7] << 8) | bytes[8]) >>> 0;
+    if (iterations < 1000 || iterations > 50000000) {
+      throw new VaultError('File header is corrupt or unreadable.');
+    }
+    return {
+      iterations: iterations,
+      salt: bytes.subarray(SALT_START, SALT_END),
+      iv:   bytes.subarray(IV_START, IV_END),
+      tag:  bytes.subarray(TAG_START, TAG_END),
+      data: bytes.subarray(DATA_START)
+    };
+  }
+
+  /* ================================================================== */
+  /*  FULLSCREEN ENGINE                                                  */
+  /* ================================================================== */
+
+  function getFullscreenElement() {
+    return document.fullscreenElement ||
+           document.webkitFullscreenElement ||
+           document.mozFullScreenElement ||
+           document.msFullscreenElement ||
+           null;
+  }
+
+  function fsSupported() {
+    var el = document.documentElement;
+    return !!(el.requestFullscreen ||
+              el.webkitRequestFullscreen ||
+              el.webkitRequestFullScreen ||
+              el.mozRequestFullScreen ||
+              el.msRequestFullscreen);
+  }
+
+  function requestFullscreen(el) {
+    var fn = el.requestFullscreen ||
+             el.webkitRequestFullscreen ||
+             el.webkitRequestFullScreen ||
+             el.mozRequestFullScreen ||
+             el.msRequestFullscreen;
+    if (!fn) return Promise.reject(new Error('Fullscreen not supported'));
+    var result;
+    try { result = fn.call(el); } catch (e) { return Promise.reject(e); }
+    if (result && typeof result.then === 'function') return result;
+    return Promise.resolve();
+  }
+
+  function exitFullscreen() {
+    var fn = document.exitFullscreen ||
+             document.webkitExitFullscreen ||
+             document.webkitCancelFullScreen ||
+             document.mozCancelFullScreen ||
+             document.msExitFullscreen;
+    if (!fn) return Promise.resolve();
+    var result;
+    try { result = fn.call(document); } catch (e) { return Promise.resolve(); }
+    if (result && typeof result.then === 'function') return result;
+    return Promise.resolve();
+  }
+
+  function updateFsUI() {
+    isInFullscreen = !!getFullscreenElement();
+    fsBtn.classList.toggle('active', isInFullscreen);
+    fsLabel.textContent = isInFullscreen ? 'Exit' : 'Full';
+    fsBtn.setAttribute('aria-label', isInFullscreen ? 'Exit fullscreen' : 'Enter fullscreen');
+    requestAnimationFrame(function () {
+      requestAnimationFrame(applyRotation);
+    });
+  }
+
+  ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange']
+    .forEach(function (ev) { document.addEventListener(ev, updateFsUI, false); });
+
+  ['fullscreenerror', 'webkitfullscreenerror', 'mozfullscreenerror', 'MSFullscreenError']
+    .forEach(function (ev) {
+      document.addEventListener(ev, function () {
+        showToast('Fullscreen failed');
+      }, false);
+    });
+
+  /* ================================================================== */
+  /*  ROTATION ENGINE                                                    */
+  /* ================================================================== */
+
+  function applyRotation() {
+    if (overlay.hidden) return;
+    var cw = playerBody.clientWidth;
+    var ch = playerBody.clientHeight;
+    if (!cw || !ch) return;
+
+    if (rotationDeg === 90 || rotationDeg === 270) {
+      video.style.maxWidth  = (ch - 1) + 'px';
+      video.style.maxHeight = (cw - 1) + 'px';
+    } else {
+      video.style.maxWidth  = '100%';
+      video.style.maxHeight = '100%';
+    }
+    video.style.transform = rotationDeg ? ('rotate(' + rotationDeg + 'deg)') : '';
+  }
+
+  function resetRotation() {
+    rotationDeg = 0;
+    video.style.transform = '';
+    video.style.maxWidth = '100%';
+    video.style.maxHeight = '100%';
+    rotateLabel.textContent = 'Rotate';
+    rotateBtn.classList.remove('active');
+  }
+
+  function rotateBy(delta) {
+    rotationDeg = ((rotationDeg + delta) % 360 + 360) % 360;
+    requestAnimationFrame(applyRotation);
+
+    var label;
+    if (rotationDeg === 0)        { label = 'Rotate'; rotateBtn.classList.remove('active'); }
+    else if (rotationDeg === 90)  { label = '90°';    rotateBtn.classList.add('active'); }
+    else if (rotationDeg === 180) { label = '180°';   rotateBtn.classList.add('active'); }
+    else                          { label = '270°';   rotateBtn.classList.add('active'); }
+
+    rotateLabel.textContent = label;
+    showToast(rotationDeg === 0 ? 'Portrait' : (rotationDeg + '°'));
+  }
+
+  rotateBtn.addEventListener('click', function () { rotateBy(90); });
+
+  window.addEventListener('resize', applyRotation);
+  window.addEventListener('orientationchange', function () {
+    setTimeout(applyRotation, 220);
+    setTimeout(applyRotation, 500);
+  });
+
+  /* ================================================================== */
+  /*  FULLSCREEN BUTTON                                                  */
+  /* ================================================================== */
+
+  fsBtn.addEventListener('click', function () {
+    if (getFullscreenElement()) { exitFullscreen(); return; }
+
+    if (!fsSupported()) {
+      if (video.webkitEnterFullscreen) {
+        try { video.webkitEnterFullscreen(); return; } catch (e) {}
+      }
+      showToast('Fullscreen not supported');
+      return;
+    }
+
+    requestFullscreen(overlay).catch(function () {
+      showToast('Fullscreen blocked');
+    });
+  });
+
+  /* ================================================================== */
+  /*  LOOP                                                               */
+  /* ================================================================== */
+
+  function setLoop(enabled, silent) {
+    loopEnabled = !!enabled;
+    video.loop = loopEnabled;
+    loopBtn.classList.toggle('active', loopEnabled);
+    loopBtn.setAttribute('aria-pressed', loopEnabled ? 'true' : 'false');
+    if (!silent) showToast(loopEnabled ? 'Loop on' : 'Loop off');
+  }
+
+  loopBtn.addEventListener('click', function () { setLoop(!loopEnabled); });
+
+  /* ================================================================== */
+  /*  SKIP                                                               */
+  /* ================================================================== */
+
+  function skip(seconds) {
+    try {
+      var dur = video.duration;
+      var target = video.currentTime + seconds;
+      if (!isFinite(dur) || dur <= 0) {
+        target = Math.max(0, target);
+      } else {
+        target = Math.min(Math.max(0, target), Math.max(0, dur - 0.15));
+      }
+      video.currentTime = target;
+      showToast(seconds > 0 ? ('+' + seconds + 's') : (seconds + 's'));
+    } catch (e) {}
+  }
+
+  skipBack.addEventListener('click', function () { skip(-settings.skipSeconds); });
+  skipFwd.addEventListener('click',  function () { skip(settings.skipSeconds); });
+
+  /* ================================================================== */
+  /*  PLAYER LIFECYCLE                                                   */
+  /* ================================================================== */
+
+  function revokeCurrent() {
+    if (currentUrl) { URL.revokeObjectURL(currentUrl); currentUrl = null; }
+  }
+
+  function stopPlayback() {
+    if (getFullscreenElement()) exitFullscreen();
+
+    clearTimeout(controlsTimer);
+    setControlsVisible(true);
+
+    revokeCurrent();
+    currentPlayingId = null;
+
+    try {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    } catch (e) {}
+
+    resetRotation();
+    setLoop(false, true);
+    releaseWakeLock();
+
+    overlay.hidden = true;
+    playerTitle.textContent = '—';
+    playerInfo.textContent = '';
+
+    renderHome();
+    renderLibrary();
+  }
+
+  function playMovie(record) {
+    if (!record || !record.blob) {
+      setLibStatus('This saved movie is missing its data. Delete and re-add it.', 'err');
+      return;
+    }
+
+    revokeCurrent();
+    resetRotation();
+    setLoop(false, true);
+
+    currentUrl = URL.createObjectURL(record.blob);
+    currentPlayingId = record.id;
+
+    video.src = currentUrl;
+    playerTitle.textContent = record.name;
+    playerInfo.textContent = fmtSize(record.size) + ' · saved ' + fmtDate(record.savedAt);
+
+    setControlsVisible(true);
+    overlay.hidden = false;
+
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        applyRotation();
+        showControls();
+      });
+    });
+
+    if (settings.autoplay) {
+      var p = video.play();
+      if (p && typeof p.catch === 'function') p.catch(function () {});
+    }
+
+    if (settings.keepAwake) requestWakeLock();
+
+    renderHome();
+    renderLibrary();
+  }
+
+  closePlayer.addEventListener('click', stopPlayback);
+
+  video.addEventListener('loadedmetadata', applyRotation);
+
+  deletePlaying.addEventListener('click', async function () {
+    if (currentPlayingId == null) return;
+    var id = currentPlayingId;
+    var rec = library.filter(function (m) { return m.id === id; })[0];
+    if (!rec) return;
+
+    var ok = window.confirm(
+      'Delete "' + rec.name + '" from this device?\n\n' +
+      'You will need the password and the original .enc file to watch it again.'
+    );
+    if (!ok) return;
+
+    stopPlayback();
+    try {
+      await dbDelete(id);
+      library = library.filter(function (m) { return m.id !== id; });
+      renderHome();
+      renderLibrary();
+      refreshStorageInfo();
+      setLibStatus('Deleted "' + rec.name + '".', 'work');
+    } catch (err) {
+      setLibStatus('Could not delete: ' + (err.message || err), 'err');
+    }
+  });
+
+  window.addEventListener('beforeunload', function () {
+    revokeCurrent();
+    releaseWakeLock();
+  });
+
+  /* ================================================================== */
+  /*  KEYBOARD SHORTCUTS                                                 */
+  /* ================================================================== */
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !overlay.hidden && !getFullscreenElement()) {
+      stopPlayback();
+      return;
+    }
+
+    if (overlay.hidden) return;
+
+    var tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+
+    showControls();
+
+    switch (e.key) {
+      case ' ':
+      case 'Spacebar':
+        e.preventDefault();
+        if (video.paused) {
+          var p = video.play();
+          if (p && typeof p.catch === 'function') p.catch(function () {});
+        } else {
+          video.pause();
+        }
+        break;
+      case 'ArrowLeft':  e.preventDefault(); skip(-settings.skipSeconds); break;
+      case 'ArrowRight': e.preventDefault(); skip(settings.skipSeconds);  break;
+      case 'r': case 'R': rotateBy(90); break;
+      case 'l': case 'L': setLoop(!loopEnabled); break;
+      case 'f': case 'F': fsBtn.click(); break;
+    }
+  });
+
+  /* ================================================================== */
+  /*  MOVIE CARDS                                                        */
+  /* ================================================================== */
+
+  function movieCardHtml(m, compact) {
+    var isPlaying = currentPlayingId != null && m.id === currentPlayingId;
+    var cls = 'movie' + (isPlaying ? ' playing' : '');
+    var playLabel = isPlaying ? 'Playing' : 'Play';
+    var delBtn = compact ? '' :
+      '<button type="button" class="del" data-action="del" data-id="' + m.id + '" ' +
+      'aria-label="Delete movie">✕</button>';
+
+    return ''
+      + '<div class="' + cls + '" data-id="' + m.id + '">'
+      +   '<div class="movie-icon">'
+      +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+      +          'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      +       '<path d="M5 4.5l14 7.5-14 7.5z" fill="currentColor" stroke="none"></path>'
+      +     '</svg>'
+      +   '</div>'
+      +   '<div class="movie-info">'
+      +     '<div class="movie-name">' + escapeHtml(m.name) + '</div>'
+      +     '<div class="movie-meta">'
+      +       '<span>' + fmtSize(m.size) + '</span>'
+      +       '<span class="dot">·</span>'
+      +       '<span>' + fmtDate(m.savedAt) + '</span>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div class="movie-actions">'
+      +     '<button type="button" class="play" data-action="play" data-id="' + m.id + '">'
+      +       playLabel
+      +     '</button>'
+      +     delBtn
+      +   '</div>'
+      + '</div>';
+  }
+
+  function emptyLibraryHtml(showCta) {
+    var cta = showCta
+      ? '<button type="button" data-goto="decrypt">Decrypt a movie</button>'
+      : '';
+    return ''
+      + '<div class="empty">'
+      +   '<div class="eicon">'
+      +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+      +          'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      +       '<rect x="3" y="4.5" width="18" height="15" rx="2.5"></rect>'
+      +       '<path d="M8 4.5v15M16 4.5v15M3 9.5h5M3 14.5h5M16 9.5h5M16 14.5h5"></path>'
+      +     '</svg>'
+      +   '</div>'
+      +   '<b>No saved movies yet</b>'
+      +   'Unlock a .enc file once and it will live here forever — no password needed again.'
+      +   cta
+      + '</div>';
+  }
+
+  function renderHome() {
+    var total = 0;
+    for (var i = 0; i < library.length; i++) total += (library[i].size || 0);
+
+    statCount.textContent = library.length;
+    statSize.textContent  = fmtShortSize(total);
+    seeAllBtn.hidden = library.length <= 3;
+
+    if (!library.length) {
+      homeRecent.innerHTML = emptyLibraryHtml(true);
+      return;
+    }
+
+    var recent = library.slice().sort(function (a, b) {
+      return (b.savedAt || 0) - (a.savedAt || 0);
+    }).slice(0, 3);
+
+    var html = '';
+    for (var j = 0; j < recent.length; j++) html += movieCardHtml(recent[j], true);
+    homeRecent.innerHTML = html;
+  }
+
+  function sortMovies(list, mode) {
+    var sorted = list.slice();
+    switch (mode) {
+      case 'date-asc':
+        sorted.sort(function (a, b) { return (a.savedAt || 0) - (b.savedAt || 0); });
+        break;
+      case 'name-asc':
+        sorted.sort(function (a, b) { return (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }); });
+        break;
+      case 'name-desc':
+        sorted.sort(function (a, b) { return (b.name || '').localeCompare(a.name || '', undefined, { sensitivity: 'base' }); });
+        break;
+      case 'size-desc':
+        sorted.sort(function (a, b) { return (b.size || 0) - (a.size || 0); });
+        break;
+      case 'size-asc':
+        sorted.sort(function (a, b) { return (a.size || 0) - (b.size || 0); });
+        break;
+      default:
+        sorted.sort(function (a, b) { return (b.savedAt || 0) - (a.savedAt || 0); });
+    }
+    return sorted;
+  }
+
+  function groupKeyFor(mode, m) {
+    if (mode === 'name-asc' || mode === 'name-desc') {
+      var ch = (m.name || '').trim().charAt(0).toUpperCase();
+      return /[A-Z]/.test(ch) ? ch : '#';
+    }
+    if (mode === 'date-asc' || mode === 'date-desc') {
+      var d = new Date(m.savedAt || 0);
+      return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+    return null;
+  }
+
+  function renderLibrary() {
+    var q = librarySearch.trim().toLowerCase();
+    var filtered = q
+      ? library.filter(function (m) { return (m.name || '').toLowerCase().indexOf(q) !== -1; })
+      : library.slice();
+    var list = sortMovies(filtered, librarySort);
+
+    libMeta.textContent = q
+      ? list.length + ' of ' + library.length + (library.length === 1 ? ' movie' : ' movies')
+      : list.length + (list.length === 1 ? ' movie' : ' movies');
+
+    if (library.length > 0) {
+      libBadge.hidden = false;
+      libBadge.textContent = library.length > 99 ? '99+' : String(library.length);
+    } else {
+      libBadge.hidden = true;
+    }
+
+    libSearchClear.hidden = !q;
+
+    if (!library.length) { libraryList.innerHTML = emptyLibraryHtml(true); return; }
+
+    if (!list.length) {
+      libraryList.innerHTML = '<div class="empty"><b>No matches</b>Try a different search term.</div>';
+      return;
+    }
+
+    var html = '';
+    var lastGroup;
+    for (var i = 0; i < list.length; i++) {
+      var key = groupKeyFor(librarySort, list[i]);
+      if (key !== null && key !== lastGroup) {
+        html += '<div class="group-head">' + escapeHtml(key) + '</div>';
+        lastGroup = key;
+      }
+      html += movieCardHtml(list[i], false);
+    }
+    libraryList.innerHTML = html;
+  }
+
+  libSearch.addEventListener('input', function () {
+    librarySearch = libSearch.value;
+    renderLibrary();
+  });
+
+  libSearchClear.addEventListener('click', function () {
+    libSearch.value = '';
+    librarySearch = '';
+    renderLibrary();
+    libSearch.focus();
+  });
+
+  libSortRow.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('[data-sort]') : null;
+    if (!btn) return;
+    librarySort = btn.getAttribute('data-sort');
+    var chips = libSortRow.querySelectorAll('.sortchip');
+    for (var i = 0; i < chips.length; i++) chips[i].classList.toggle('active', chips[i] === btn);
+    renderLibrary();
+  });
+
+  async function handleCardClick(e) {
+    var btn = e.target.closest ? e.target.closest('button[data-action]') : null;
+    if (!btn) return;
+
+    var id = parseInt(btn.getAttribute('data-id'), 10);
+    var action = btn.getAttribute('data-action');
+    var record = library.filter(function (m) { return m.id === id; })[0];
+    if (!record) return;
+
+    if (action === 'play') {
+      if (currentPlayingId === id) {
+        stopPlayback();
+        setLibStatus('Stopped.', 'work');
+      } else {
+        playMovie(record);
+        setLibStatus('Playing "' + record.name + '" — no password needed.', 'ok');
+      }
+      return;
+    }
+
+    if (action === 'del') {
+      var ok = window.confirm(
+        'Delete "' + record.name + '" from this device?\n\n' +
+        'You will need the password and the original .enc file to watch it again.'
+      );
+      if (!ok) return;
+
+      if (currentPlayingId === id) stopPlayback();
+
+      try {
+        await dbDelete(id);
+        library = library.filter(function (m) { return m.id !== id; });
+        renderHome();
+        renderLibrary();
+        refreshStorageInfo();
+        setLibStatus('Deleted "' + record.name + '".', 'work');
+      } catch (err) {
+        setLibStatus('Could not delete: ' + (err.message || err), 'err');
+      }
+    }
+  }
+
+  libraryList.addEventListener('click', handleCardClick);
+  homeRecent.addEventListener('click', handleCardClick);
+
+  async function refreshLibrary() {
+    if (!dbAvailable) {
+      library = []; renderHome(); renderLibrary(); refreshStorageInfo(); return;
+    }
+    try {
+      var all = await dbGetAll();
+      library = all.map(function (r) {
+        return { id: r.id, name: r.name, size: r.size, savedAt: r.savedAt, blob: r.blob };
+      });
+      renderHome();
+      renderLibrary();
+      refreshStorageInfo();
+    } catch (e) {
+      dbAvailable = false;
+      library = [];
+      renderHome();
+      renderLibrary();
+      refreshStorageInfo();
+      setLibStatus('Storage is unavailable in this browser. Movies will not be remembered.', 'warn');
+    }
+  }
+
+  /* ================================================================== */
+  /*  DECRYPT VIEW                                                       */
+  /* ================================================================== */
+
+  function updateDecryptUI() {
+    if (pendingFiles.length) {
+      drop.classList.add('ready');
+      if (pendingFiles.length === 1) {
+        dropTitle.textContent = pendingFiles[0].name;
+        dropSub.textContent = fmtSize(pendingFiles[0].size) + ' · ready to unlock';
+      } else {
+        var totalSize = pendingFiles.reduce(function (s, f) { return s + f.size; }, 0);
+        dropTitle.textContent = pendingFiles.length + ' files selected';
+        dropSub.textContent = fmtSize(totalSize) + ' total · tap to add more';
+      }
+      unlockBtn.hidden = false;
+      if (!pwInput.value) {
+        unlockBtn.disabled = true;
+        unlockBtn.textContent = 'Enter password above';
+      } else {
+        unlockBtn.disabled = busy;
+        unlockBtn.textContent = busy
+          ? 'Decrypting…'
+          : (pendingFiles.length > 1 ? 'Unlock ' + pendingFiles.length + ' files & save to library' : 'Unlock & save to library');
+      }
+    } else {
+      drop.classList.remove('ready');
+      dropTitle.textContent = 'Drop .enc file(s) here';
+      dropSub.textContent = 'or tap to choose files';
+      unlockBtn.hidden = true;
+      unlockBtn.disabled = true;
+    }
+    renderQueueList();
+  }
+
+  function renderQueueList() {
+    if (!pendingFiles.length) {
+      qlist.innerHTML = '';
+      qlistFoot.hidden = true;
+      return;
+    }
+    qlistFoot.hidden = false;
+    var totalSize = pendingFiles.reduce(function (s, f) { return s + f.size; }, 0);
+    qlistCount.textContent = pendingFiles.length + (pendingFiles.length === 1 ? ' file' : ' files') +
+      ' · ' + fmtSize(totalSize);
+    qlist.innerHTML = pendingFiles.map(function (f, i) {
+      var state = f._status || 'pending';
+      var icon = state === 'ok' ? '✔' : state === 'err' ? '!' : state === 'work' ? '…' : (i + 1);
+      var meta = state === 'err' ? (f._err || 'Failed')
+        : state === 'ok' ? 'Unlocked'
+        : state === 'work' ? 'Working…'
+        : fmtSize(f.size);
+      var removeBtn = busy ? '' :
+        '<button type="button" class="qitem-remove" data-remove="' + i + '" aria-label="Remove ' + escapeHtml(f.name) + '">&times;</button>';
+      return '<div class="qitem ' + state + '">' +
+        '<div class="qitem-icon">' + icon + '</div>' +
+        '<div class="qitem-body"><div class="qitem-name">' + escapeHtml(f.name) + '</div>' +
+        '<div class="qitem-meta">' + escapeHtml(meta) + '</div></div>' +
+        removeBtn +
+        '</div>';
+    }).join('');
+  }
+
+  qlist.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('[data-remove]') : null;
+    if (!btn || busy) return;
+    var idx = parseInt(btn.getAttribute('data-remove'), 10);
+    pendingFiles.splice(idx, 1);
+    updateDecryptUI();
+  });
+
+  qlistClear.addEventListener('click', function () {
+    if (busy) return;
+    pendingFiles = [];
+    updateDecryptUI();
+    setDecStatus('Waiting for a vault file…', '');
+  });
+
+  function queueFiles(fileList) {
+    if (!fileList || !fileList.length) return;
+    var added = 0, skipped = 0;
+    for (var i = 0; i < fileList.length; i++) {
+      var file = fileList[i];
+      if (!file) continue;
+      if (file.name && !/\.enc$/i.test(file.name) && file.size < HEADER_LEN + 1) { skipped++; continue; }
+      var isDup = pendingFiles.some(function (f) { return f.name === file.name && f.size === file.size; });
+      if (isDup) continue;
+      pendingFiles.push(file);
+      added++;
+    }
+    stopPlayback();
+    if (currentView !== 'decrypt') showView('decrypt');
+    updateDecryptUI();
+
+    if (!added && skipped) {
+      setDecStatus('That does not look like a vault file.', 'err');
+      return;
+    }
+    if (!pendingFiles.length) return;
+
+    var label = pendingFiles.length === 1 ? '"' + pendingFiles[0].name + '"' : pendingFiles.length + ' files';
+    var skipNote = skipped ? ' (' + skipped + ' skipped — not .enc)' : '';
+    if (pwInput.value) {
+      setDecStatus(label + ' ready' + skipNote + '. Tap Unlock to decrypt.', 'work');
+    } else {
+      setDecStatus(label + ' ready' + skipNote + '. Enter your password to unlock.', 'work');
+      pwInput.focus();
+    }
+  }
+
+  function resetDrop() { pendingFiles = []; updateDecryptUI(); }
+
+  unlockBtn.addEventListener('click', function () {
+    if (pendingFiles.length && pwInput.value && !busy) runDecrypt();
+  });
+
+  drop.addEventListener('click', function () { fileInput.click(); });
+
+  drop.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
+
+  fileInput.addEventListener('change', function (e) {
+    var files = e.target.files;
+    queueFiles(files);
+    e.target.value = '';
+  });
+
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) {
+      e.preventDefault(); e.stopPropagation();
+      drop.classList.add('over');
+    });
+  });
+
+  ['dragleave', 'dragend'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) {
+      e.preventDefault(); e.stopPropagation();
+      if (ev === 'dragleave' && drop.contains(e.relatedTarget)) return;
+      drop.classList.remove('over');
+    });
+  });
+
+  drop.addEventListener('drop', function (e) {
+    e.preventDefault(); e.stopPropagation();
+    drop.classList.remove('over');
+    var dt = e.dataTransfer;
+    if (dt && dt.files && dt.files.length) queueFiles(dt.files);
+  });
+
+  ['dragover', 'drop'].forEach(function (ev) {
+    window.addEventListener(ev, function (e) { e.preventDefault(); }, false);
+  });
+
+  function stripEncSuffix(name) {
+    return String(name).replace(/\.enc$/i, '') || name;
+  }
+
+  async function decryptOne(file, password) {
+    var buffer = await file.arrayBuffer();
+    var bytes = new Uint8Array(buffer);
+    var header = parseHeader(bytes);
+
+    var baseKey;
+    try {
+      baseKey = await crypto.subtle.importKey(
+        'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']
+      );
+    } catch (e) { throw new VaultError('Could not process the password on this device.'); }
+
+    var aesKey;
+    try {
+      aesKey = await crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt: header.salt, iterations: header.iterations, hash: 'SHA-256' },
+        baseKey,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['decrypt']
+      );
+    } catch (e) { throw new VaultError('Key derivation failed. The file header may be damaged.'); }
+
+    var combined = new Uint8Array(header.data.length + TAG_LEN);
+    combined.set(header.data, 0);
+    combined.set(header.tag, header.data.length);
+
+    var plain;
+    try {
+      plain = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: header.iv, tagLength: 128 }, aesKey, combined
+      );
+    } catch (e) { throw new VaultError('Wrong password — this file cannot be unlocked.'); }
+
+    if (!plain || plain.byteLength === 0) throw new VaultError('The decrypted file is empty.');
+
+    var blob = new Blob([plain], { type: 'video/mp4' });
+    var cleanName = stripEncSuffix(file.name);
+    var savedRecord = null;
+
+    if (dbAvailable) {
+      try {
+        var existing = library.filter(function (m) { return m.name === cleanName; });
+        for (var i = 0; i < existing.length; i++) await dbDelete(existing[i].id);
+
+        var rec = { name: cleanName, size: plain.byteLength, savedAt: Date.now(), blob: blob };
+        var newId = await dbPut(rec);
+        rec.id = newId;
+        savedRecord = rec;
+      } catch (e) {
+        savedRecord = { id: null, name: cleanName, size: plain.byteLength, savedAt: Date.now(), blob: blob };
+      }
+    } else {
+      savedRecord = { id: null, name: cleanName, size: plain.byteLength, savedAt: Date.now(), blob: blob };
+    }
+
+    return savedRecord;
+  }
+
+  async function runDecrypt() {
+    if (busy || !pendingFiles.length) return;
+    var password = pwInput.value;
+
+    if (!password) { setDecStatus('Enter the password first.', 'err'); pwInput.focus(); return; }
+    if (!(window.crypto && window.crypto.subtle)) {
+      setDecStatus('WebCrypto is unavailable here. Open this file in a modern browser.', 'err');
+      return;
+    }
+
+    busy = true;
+    drop.classList.add('loading');
+    updateDecryptUI();
+
+    var queue = pendingFiles.filter(function (f) { return f._status !== 'ok'; });
+    var total = queue.length;
+    var okCount = 0, errCount = 0, lastSaved = null, abortRest = false;
+
+    for (var qi = 0; qi < queue.length; qi++) {
+      var file = queue[qi];
+      var progress = total > 1 ? '(' + (qi + 1) + '/' + total + ') ' : '';
+
+      if (abortRest) {
+        file._status = 'err';
+        file._err = 'Skipped — same password failed on an earlier file.';
+        errCount++;
+        renderQueueList();
+        continue;
+      }
+
+      file._status = 'work';
+      renderQueueList();
+
+      try {
+        setDecStatus(progress + 'Unlocking ' + file.name + ' (' + fmtSize(file.size) + ')…', 'work');
+        await nextFrame();
+
+        var savedRecord = await decryptOne(file, password);
+
+        file._status = 'ok';
+        okCount++;
+        lastSaved = savedRecord;
+        renderQueueList();
+      } catch (err) {
+        var msg = (err && err.message) ? err.message : 'Something went wrong.';
+        file._status = 'err';
+        file._err = msg;
+        errCount++;
+        renderQueueList();
+        if (window.console) console.error(err);
+        if (total > 1 && qi === 0 && /wrong password/i.test(msg)) abortRest = true;
+      }
+
+      await nextFrame();
+    }
+
+    if (okCount > 0) {
+      if (remember.checked) storePassword(password);
+      await refreshLibrary();
+    }
+
+    pendingFiles = pendingFiles.filter(function (f) { return f._status !== 'ok'; });
+
+    busy = false;
+    drop.classList.remove('loading');
+    updateDecryptUI();
+
+    if (errCount === 0) {
+      setDecStatus(
+        'Unlocked ' + okCount + (okCount === 1 ? ' file' : ' files') + ' ✔ saved to library.',
+        'ok'
+      );
+      if (okCount === 1 && lastSaved) playMovie(lastSaved);
+    } else if (okCount === 0) {
+      setDecStatus(
+        'Could not unlock ' + errCount + (errCount === 1 ? ' file' : ' files') + '. Check the password and try again.',
+        'err'
+      );
+    } else {
+      setDecStatus(
+        'Unlocked ' + okCount + ' of ' + total + ' — saved to library. ' +
+        errCount + ' failed and stayed in the list below to retry.',
+        'warn'
+      );
+    }
+  }
+
+  /* ================================================================== */
+  /*  SPLASH / BOOT SEQUENCE                                             */
+  /* ================================================================== */
+
+  function setSplashProgress(pct, label) {
+    if (splashBar) splashBar.style.width = pct + '%';
+    if (label && splashSub) splashSub.textContent = label;
+  }
+
+  function dismissSplash() {
+    splash.classList.add('gone');
+    setTimeout(function () { splash.hidden = true; }, 700);
+  }
+
+  async function boot() {
+    var startedAt = Date.now();
+
+    setSplashProgress(8, 'Starting up…');
+    await delay(420);
+
+    setSplashProgress(22, 'Loading settings…');
+    await nextFrame();
+    loadSettings();
+    await delay(480);
+
+    setSplashProgress(38, 'Checking credentials…');
+    await nextFrame();
+    loadPassword();
+    updateDecryptUI();
+    updateFsUI();
+    setControlsVisible(true);
+    await delay(520);
+
+    setSplashProgress(58, 'Restoring your library…');
+    await nextFrame();
+    await refreshLibrary();
+    await delay(560);
+
+    setSplashProgress(80, 'Verifying stored movies…');
+    await nextFrame();
+    var totalSize = 0;
+    for (var i = 0; i < library.length; i++) totalSize += (library[i].size || 0);
+    void totalSize;
+    await delay(520);
+
+    setSplashProgress(94, 'Warming up the player…');
+    await nextFrame();
+    var startView = 'home';
+    try {
+      var saved = localStorage.getItem(LAST_VIEW);
+      if (saved && views[saved]) startView = saved;
+    } catch (e) {}
+    showView(startView);
+    await delay(480);
+
+    setSplashProgress(100, 'Ready');
+    await nextFrame();
+
+    var elapsed = Date.now() - startedAt;
+    var wait = Math.max(0, SPLASH_MIN_MS - elapsed);
+    if (wait > 0) await delay(wait);
+
+    await delay(500);
+
+    dismissSplash();
+
+    if (!dbAvailable) {
+      setDecStatus('Storage is unavailable in this browser. Movies will not be remembered between visits.', 'warn');
+    }
+    if (!(window.crypto && window.crypto.subtle)) {
+      setDecStatus('WebCrypto is unavailable in this browser. Use a modern browser.', 'err');
+      unlockBtn.disabled = true;
+    }
+  }
+
+  setTimeout(function () {
+    if (!splash.hidden) dismissSplash();
+  }, 8000);
+
+  boot().catch(function (e) {
+    if (window.console) console.error('Boot error:', e);
+    setSplashProgress(100, 'Starting anyway…');
+    setTimeout(dismissSplash, 900);
+    showView('home');
+  });
+})();
+</script>
+</body>
+</html>
