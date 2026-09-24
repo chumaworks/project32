@@ -7,9 +7,13 @@
 <meta name="theme-color" content="#FF7A1A">
 <title>Private Vault Player</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<!-- Offline / installable app -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Private Vault">
 
 <style>
   :root{
@@ -3445,6 +3449,136 @@ SOFTWARE.</div>
     setTimeout(dismissSplash, 900);
     showView('home');
   });
+})();
+</script>
+
+<!-- ================= OFFLINE BOOTSTRAP (PWA) ================= -->
+<script>
+(function () {
+  'use strict';
+
+  var HTTP = /^https?:$/.test(location.protocol);
+  var deferredPrompt = null;
+
+  function toast(msg) {
+    var el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 1700);
+  }
+
+  /* ---------- register the service worker ---------- */
+  function registerSW() {
+    if (!('serviceWorker' in navigator) || !HTTP) { refreshOfflineUI(); return; }
+    navigator.serviceWorker.register('sw.js', { scope: './' }).then(function (reg) {
+      refreshOfflineUI();
+      reg.addEventListener('updatefound', function () {
+        var nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', function () {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            toast('Update ready — reopen the app');
+          }
+        });
+      });
+    }).catch(function (err) {
+      if (window.console) console.warn('[offline] SW registration failed:', err);
+      refreshOfflineUI();
+    });
+  }
+
+  /* ---------- settings section ---------- */
+  function injectSection() {
+    var view = document.getElementById('view-settings');
+    if (!view || document.getElementById('offlineSec')) return;
+
+    var sec = document.createElement('div');
+    sec.className = 'settings-sec';
+    sec.id = 'offlineSec';
+    sec.innerHTML =
+      '<h3>Offline</h3>' +
+      '<div class="storage">' +
+        '<div class="storage-row"><span>Offline cache</span><span id="swState">Checking…</span></div>' +
+        '<div class="storage-row"><span>Connection</span><span id="netState">—</span></div>' +
+      '</div>' +
+      '<button type="button" id="installBtn" style="width:100%;height:56px;border-radius:20px 7px 18px 4px;margin-bottom:12px;" hidden>Install app</button>' +
+      '<button type="button" id="cacheBtn" style="width:100%;height:56px;border-radius:20px 7px 18px 4px;">Update offline cache</button>' +
+      '<div class="hint" style="text-align:center;">Once saved, this app opens with no internet connection at all.</div>';
+    view.appendChild(sec);
+
+    var installBtn = sec.querySelector('#installBtn');
+    var cacheBtn   = sec.querySelector('#cacheBtn');
+
+    installBtn.addEventListener('click', function () {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function () {
+        deferredPrompt = null;
+        installBtn.hidden = true;
+        refreshOfflineUI();
+      });
+    });
+
+    cacheBtn.addEventListener('click', function () {
+      if (!('serviceWorker' in navigator) || !HTTP) { toast('Offline cache not available'); return; }
+      navigator.serviceWorker.ready.then(function (reg) {
+        if (!reg.active) return;
+        reg.active.postMessage({ type: 'CACHE_ALL' });
+        toast('Re-caching app…');
+      }).catch(function () { toast('Offline cache not available'); });
+    });
+
+    refreshOfflineUI();
+  }
+
+  function refreshOfflineUI() {
+    var swState = document.getElementById('swState');
+    var netState = document.getElementById('netState');
+    if (!swState) return;
+
+    if (!HTTP) {
+      swState.textContent = 'Local file — always offline';
+    } else if (!('serviceWorker' in navigator)) {
+      swState.textContent = 'Not supported';
+    } else {
+      navigator.serviceWorker.getRegistration().then(function (reg) {
+        if (reg && reg.active) swState.textContent = 'Ready';
+        else if (reg) swState.textContent = 'Installing…';
+        else swState.textContent = 'Not cached yet';
+      }).catch(function () { swState.textContent = 'Unknown'; });
+    }
+    if (netState) netState.textContent = navigator.onLine ? 'Online' : 'Offline';
+  }
+
+  /* ---------- install prompt ---------- */
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    var btn = document.getElementById('installBtn');
+    if (btn) btn.hidden = false;
+  });
+  window.addEventListener('appinstalled', function () {
+    deferredPrompt = null;
+    var btn = document.getElementById('installBtn');
+    if (btn) btn.hidden = true;
+    toast('Installed');
+  });
+
+  window.addEventListener('online',  refreshOfflineUI);
+  window.addEventListener('offline', function () {
+    refreshOfflineUI();
+    toast('Offline — cached app still works');
+  });
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', function (e) {
+      if (e.data && e.data.type === 'CACHE_DONE') toast('Offline cache updated');
+    });
+  }
+
+  injectSection();
+  registerSW();
 })();
 </script>
 </body>
